@@ -960,7 +960,9 @@ document.getElementById('btn-cancelar-modal').onclick = () => {
 // ── Confirmar venta ────────────────────────────────────────────────────────
 document.getElementById('btn-confirmar-venta').onclick = async () => {
   const datos = construirDatosVenta();
-  document.getElementById('btn-confirmar-venta').disabled = true;
+  const btn = document.getElementById('btn-confirmar-venta');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
 
   try {
     if (navigator.onLine) {
@@ -974,13 +976,15 @@ document.getElementById('btn-confirmar-venta').onclick = async () => {
     carrito = [];
     renderCarrito();
   } catch(e) {
-    alert('Error al guardar la venta. Se guardó localmente para sincronizar luego.');
     ventasPendientes.push(datos);
     localStorage.setItem('ventas_pendientes', JSON.stringify(ventasPendientes));
     document.getElementById('modal-cobro').classList.remove('visible');
     mostrarTicket(datos);
     carrito = [];
     renderCarrito();
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Confirmar';
   }
 };
 
