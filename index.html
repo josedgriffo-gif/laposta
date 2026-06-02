@@ -465,7 +465,7 @@
 
   <!-- Header -->
   <div id="header">
-    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v2.3</span></h1>
+    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v2.4</span></h1>
     <div id="header-right">
       <span id="offline-badge">SIN CONEXIÓN</span>
       <button id="btn-admin">Admin</button>
@@ -1199,15 +1199,16 @@ document.getElementById('btn-admin').onclick = () => {
     alert('El carrito debe estar vacío para acceder al admin.');
     return;
   }
-  pedirPin('admin', () => {
-    window.location.href = 'admin.html';
+  pedirPin('admin', (tipo) => {
+    // Según el PIN ingresado: dueño → vista dueño; admin → panel admin
+    window.location.href = (tipo === 'dueno') ? 'dueno.html' : 'admin.html';
   });
 };
 
 function pedirPin(tipo, callback) {
   pinBuffer = '';
   pinCallback = callback;
-  document.getElementById('pin-titulo').textContent = tipo === 'admin' ? 'PIN Admin' : 'PIN Dueño';
+  document.getElementById('pin-titulo').textContent = 'Ingresá tu PIN';
   document.getElementById('pin-error').textContent = '';
   actualizarDotsPIN();
   document.getElementById('modal-pin').classList.add('visible');
