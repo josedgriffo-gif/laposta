@@ -26,7 +26,7 @@
   }
   #header h1 { font-size: 1.3rem; font-weight: 700; letter-spacing: 0.5px; }
   #header-right { display: flex; align-items: center; gap: 10px; }
-  #btn-admin {
+  #btn-admin, #btn-dueno {
     background: rgba(255,255,255,0.15);
     color: white;
     border: 1px solid rgba(255,255,255,0.3);
@@ -34,7 +34,7 @@
     padding: 6px 14px;
     font-size: 0.85rem;
   }
-  #btn-admin:active { background: rgba(255,255,255,0.25); }
+  #btn-admin:active, #btn-dueno:active { background: rgba(255,255,255,0.25); }
   #offline-badge {
     background: #f44336;
     color: white;
@@ -465,9 +465,10 @@
 
   <!-- Header -->
   <div id="header">
-    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v2.4</span></h1>
+    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v2.5</span></h1>
     <div id="header-right">
       <span id="offline-badge">SIN CONEXIÓN</span>
+      <button id="btn-dueno">Dueño</button>
       <button id="btn-admin">Admin</button>
     </div>
   </div>
@@ -1196,12 +1197,26 @@ document.getElementById('btn-nueva-venta').onclick = () => {
 // ── PIN ────────────────────────────────────────────────────────────────────
 document.getElementById('btn-admin').onclick = () => {
   if (carrito.length > 0) {
-    alert('El carrito debe estar vacío para acceder al admin.');
+    alert('El carrito debe estar vacío para entrar al panel.');
     return;
   }
   pedirPin('admin', (tipo) => {
-    // Según el PIN ingresado: dueño → vista dueño; admin → panel admin
-    window.location.href = (tipo === 'dueno') ? 'dueno.html' : 'admin.html';
+    if (tipo === 'admin') {
+      window.location.href = 'admin.html';
+    } else {
+      alert('Necesitás el PIN de administrador para entrar acá.');
+    }
+  });
+};
+
+document.getElementById('btn-dueno').onclick = () => {
+  if (carrito.length > 0) {
+    alert('El carrito debe estar vacío para entrar a la vista dueño.');
+    return;
+  }
+  // La vista dueño la abren tanto el dueño como el admin
+  pedirPin('dueno', () => {
+    window.location.href = 'dueno.html';
   });
 };
 
