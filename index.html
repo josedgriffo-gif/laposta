@@ -58,6 +58,33 @@
     gap: 10px;
   }
 
+  /* Buscador */
+  #buscador-wrap {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  #buscador-caja {
+    flex: 1;
+    padding: 12px 16px;
+    font-size: 1.05rem;
+    border: 2px solid #c8e6c9;
+    border-radius: 10px;
+    outline: none;
+  }
+  #buscador-caja:focus { border-color: #2e7d32; }
+  #btn-limpiar-busq {
+    background: #f5f5f5;
+    color: #888;
+    border-radius: 10px;
+    padding: 0 18px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    display: none;
+  }
+  #btn-limpiar-busq.visible { display: block; }
+
   /* Categorías */
   #categorias {
     display: flex;
@@ -428,7 +455,7 @@
 
   <!-- Header -->
   <div id="header">
-    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v1.8</span></h1>
+    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v1.9</span></h1>
     <div id="header-right">
       <span id="offline-badge">SIN CONEXIÓN</span>
       <button id="btn-admin">Admin</button>
@@ -440,6 +467,10 @@
 
     <!-- Panel de productos -->
     <div id="panel-productos">
+      <div id="buscador-wrap">
+        <input type="text" id="buscador-caja" placeholder="🔍 Buscar producto..." autocomplete="off">
+        <button id="btn-limpiar-busq" title="Limpiar">✕</button>
+      </div>
       <div id="categorias"></div>
       <div id="productos">
         <div id="msg-sin-productos">No hay productos en esta categoría</div>
@@ -654,9 +685,33 @@ function seleccionarCategoria(cat, btn) {
   renderProductos(productosFiltrados());
 }
 
+// ── Buscador ───────────────────────────────────────────────────────────────
+document.getElementById('buscador-caja').addEventListener('input', () => {
+  const txt = document.getElementById('buscador-caja').value.trim();
+  document.getElementById('btn-limpiar-busq').classList.toggle('visible', txt.length > 0);
+  renderProductos(productosFiltrados());
+});
+
+document.getElementById('btn-limpiar-busq').onclick = () => {
+  document.getElementById('buscador-caja').value = '';
+  document.getElementById('btn-limpiar-busq').classList.remove('visible');
+  renderProductos(productosFiltrados());
+};
+
 function productosFiltrados() {
-  if (!categoriaActiva) return productos;
-  return productos.filter(p => p['Categoría'] === categoriaActiva);
+  let lista = productos;
+
+  // Filtro por texto de búsqueda (si hay)
+  const txt = (document.getElementById('buscador-caja')?.value || '').trim().toLowerCase();
+  if (txt) {
+    // Cuando se busca, ignora la categoría y busca en todos
+    lista = productos.filter(p => (p['Nombre'] || '').toLowerCase().includes(txt));
+  } else if (categoriaActiva) {
+    lista = productos.filter(p => p['Categoría'] === categoriaActiva);
+  }
+
+  // Orden alfabético por nombre
+  return [...lista].sort((a, b) => (a['Nombre'] || '').localeCompare(b['Nombre'] || ''));
 }
 
 // ── Render productos ───────────────────────────────────────────────────────
