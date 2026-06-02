@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>La Posta — Vista Dueño</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #1a1a1a; font-size: 16px; }
+
+  #header {
+    background: #1b5e20;
+    color: white;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 56px;
+  }
+  #header h1 { font-size: 1.2rem; font-weight: 700; }
+  #btn-volver {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #fecha-label { font-size: 0.85rem; opacity: 0.8; }
+
+  #contenido { padding: 16px; max-width: 700px; margin: 0 auto; }
+
+  .card {
+    background: white;
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  .card h2 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 14px;
+  }
+
+  /* ── Meta ─────────────────────────────────────────────────────────────── */
+  #total-grande {
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: #1b5e20;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  #meta-texto { font-size: 0.9rem; color: #888; margin-bottom: 12px; }
+  .barra-wrap {
+    background: #e8f5e9;
+    border-radius: 10px;
+    height: 24px;
+    overflow: hidden;
+    position: relative;
+  }
+  .barra-fill {
+    height: 100%;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #2e7d32, #66bb6a);
+    transition: width 0.6s ease;
+    min-width: 4px;
+  }
+  .barra-fill.superada { background: linear-gradient(90deg, #e65100, #ffa726); }
+  #pct-label {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #2e7d32;
+    text-align: right;
+    margin-top: 6px;
+  }
+  #pct-label.superada { color: #e65100; }
+
+  /* ── Resumen rápido ───────────────────────────────────────────────────── */
+  .grid-numeros {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .numero-box {
+    background: #f8f8f8;
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+  .numero-box .valor { font-size: 1.3rem; font-weight: 800; color: #1b5e20; }
+  .numero-box .etiq { font-size: 0.75rem; color: #888; margin-top: 2px; }
+
+  /* ── Medios de pago ───────────────────────────────────────────────────── */
+  .medio-fila {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f5f5f5;
+    font-size: 0.95rem;
+  }
+  .medio-fila:last-child { border-bottom: none; }
+  .medio-nombre { color: #444; display: flex; align-items: center; gap: 8px; }
+  .medio-barra-wrap { flex: 1; margin: 0 12px; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; }
+  .medio-barra { height: 100%; border-radius: 4px; background: #4caf50; }
+  .medio-valor { font-weight: 700; color: #1b5e20; white-space: nowrap; }
+
+  /* ── Productos top ────────────────────────────────────────────────────── */
+  .prod-fila {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f5f5f5;
+    font-size: 0.95rem;
+  }
+  .prod-fila:last-child { border-bottom: none; }
+  .prod-pos { font-size: 1.1rem; font-weight: 800; color: #ccc; width: 28px; }
+  .prod-info { flex: 1; }
+  .prod-nombre { font-weight: 600; }
+  .prod-cat { font-size: 0.75rem; color: #aaa; }
+  .prod-ingreso { font-weight: 700; color: #1b5e20; }
+
+  /* ── Actualización ────────────────────────────────────────────────────── */
+  #ultimo-update { text-align: center; font-size: 0.8rem; color: #bbb; margin-top: 8px; padding-bottom: 16px; }
+  #btn-actualizar {
+    display: block;
+    margin: 0 auto 16px;
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* ── Loading ──────────────────────────────────────────────────────────── */
+  #loading {
+    position: fixed; inset: 0;
+    background: #1b5e20;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    z-index: 999;
+    font-size: 1.1rem;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 4px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #sin-datos { text-align: center; color: #bbb; padding: 40px 20px; font-size: 1rem; display: none; }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <span>Cargando datos...</span>
+</div>
+
+<div id="header">
+  <div>
+    <h1>📊 Vista Dueño</h1>
+    <div id="fecha-label"></div>
+  </div>
+  <button id="btn-volver" onclick="window.location.href='index.html'">← Caja</button>
+</div>
+
+<div id="contenido">
+
+  <div id="sin-datos">No hay ventas registradas hoy.</div>
+
+  <!-- Meta del día -->
+  <div class="card" id="card-meta">
+    <h2>Progreso del día</h2>
+    <div id="total-grande">$ 0</div>
+    <div id="meta-texto">de $ 0 de meta</div>
+    <div class="barra-wrap"><div class="barra-fill" id="barra-fill" style="width:0%"></div></div>
+    <div id="pct-label">0%</div>
+  </div>
+
+  <!-- Números rápidos -->
+  <div class="card" id="card-numeros">
+    <h2>Resumen</h2>
+    <div class="grid-numeros">
+      <div class="numero-box">
+        <div class="valor" id="num-margen">$ 0</div>
+        <div class="etiq">Margen $</div>
+      </div>
+      <div class="numero-box">
+        <div class="valor" id="num-margen-pct">0%</div>
+        <div class="etiq">Margen %</div>
+      </div>
+      <div class="numero-box">
+        <div class="valor" id="num-tickets">0</div>
+        <div class="etiq">Tickets</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Medios de pago -->
+  <div class="card" id="card-medios">
+    <h2>Por medio de pago</h2>
+    <div id="medios-contenido"></div>
+  </div>
+
+  <!-- Top productos -->
+  <div class="card" id="card-productos">
+    <h2>Productos del día</h2>
+    <div id="productos-contenido"></div>
+  </div>
+
+  <button id="btn-actualizar" onclick="cargarDatos()">↻ Actualizar</button>
+  <div id="ultimo-update"></div>
+
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbzYU4oUPCb7jNORognxXS-gVDVk8SBqU6H7Kp24eWxMtZD9pZ5wjMGpXK35aOTjLHkb0Q/exec';
+
+async function apiGet(action) {
+  const res = await fetch(`${API_URL}?action=${action}`);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error);
+  return json.data;
+}
+
+function formatPesos(n) {
+  return '$ ' + Math.round(Number(n) || 0).toLocaleString('es-AR');
+}
+
+async function cargarDatos() {
+  try {
+    const [resumen, ventasHoy, config] = await Promise.all([
+      apiGet('getResumenHoy'),
+      apiGet('getVentasHoy'),
+      apiGet('getConfig')
+    ]);
+
+    document.getElementById('loading').style.display = 'none';
+
+    const meta = Number(config?.Meta_Diaria) || 1500000;
+    const hoy = new Date().toLocaleDateString('es-AR', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      weekday: 'long', day: 'numeric', month: 'long'
+    });
+    document.getElementById('fecha-label').textContent = hoy;
+
+    if (!resumen) {
+      document.getElementById('sin-datos').style.display = 'block';
+      ['card-meta','card-numeros','card-medios','card-productos'].forEach(id => {
+        document.getElementById(id).style.display = 'none';
+      });
+      document.getElementById('ultimo-update').textContent = 'Sin ventas hoy';
+      return;
+    }
+
+    document.getElementById('sin-datos').style.display = 'none';
+    ['card-meta','card-numeros','card-medios','card-productos'].forEach(id => {
+      document.getElementById(id).style.display = 'block';
+    });
+
+    // ── Meta ──────────────────────────────────────────────────────────────
+    const total = Number(resumen['Total_Ventas']) || 0;
+    const pct = total / meta * 100;
+    const superada = pct >= 100;
+
+    document.getElementById('total-grande').textContent = formatPesos(total);
+    document.getElementById('meta-texto').textContent = `de ${formatPesos(meta)} de meta`;
+    document.getElementById('barra-fill').style.width = Math.min(100, pct) + '%';
+    document.getElementById('barra-fill').className = 'barra-fill' + (superada ? ' superada' : '');
+    document.getElementById('pct-label').textContent = pct.toFixed(1) + '%' + (superada ? ' ✓ META SUPERADA' : '');
+    document.getElementById('pct-label').className = 'pct-label' + (superada ? ' superada' : '');
+
+    // ── Números ────────────────────────────────────────────────────────────
+    document.getElementById('num-margen').textContent = formatPesos(resumen['Margen_$'] || 0);
+    document.getElementById('num-margen-pct').textContent = Number(resumen['Margen_%'] || 0).toFixed(1) + '%';
+    document.getElementById('num-tickets').textContent = resumen['Cant_Tickets'] || 0;
+
+    // ── Medios de pago ─────────────────────────────────────────────────────
+    const medios = [
+      { nombre: 'Efectivo',      key: 'Efectivo',      color: '#4caf50' },
+      { nombre: 'Mercado Pago',  key: 'Mercado_Pago',  color: '#2196f3' },
+      { nombre: 'Transferencia', key: 'Transferencia', color: '#9c27b0' },
+      { nombre: 'Cuenta DNI',    key: 'Cuenta_DNI',    color: '#ff9800' },
+      { nombre: 'Tarjeta',       key: 'Tarjeta',       color: '#f44336' },
+      { nombre: 'Otro',          key: 'Otro',           color: '#607d8b' },
+    ];
+
+    const mediosCont = document.getElementById('medios-contenido');
+    const maxMedio = Math.max(...medios.map(m => Number(resumen[m.key]) || 0), 1);
+
+    mediosCont.innerHTML = medios
+      .map(m => {
+        const val = Number(resumen[m.key]) || 0;
+        if (val === 0) return '';
+        const bPct = (val / maxMedio * 100).toFixed(1);
+        return `<div class="medio-fila">
+          <span class="medio-nombre"><span style="width:10px;height:10px;border-radius:50%;background:${m.color};display:inline-block"></span>${m.nombre}</span>
+          <div class="medio-barra-wrap"><div class="medio-barra" style="width:${bPct}%;background:${m.color}"></div></div>
+          <span class="medio-valor">${formatPesos(val)}</span>
+        </div>`;
+      }).join('') || '<div style="color:#bbb;text-align:center;padding:10px">Sin datos</div>';
+
+    // ── Top productos ──────────────────────────────────────────────────────
+    const detalle = ventasHoy.detalle || [];
+    const porProducto = {};
+    detalle.forEach(d => {
+      const nombre = d['Producto'];
+      if (!porProducto[nombre]) {
+        porProducto[nombre] = { nombre, categoria: d['Categoría'] || '', ingreso: 0, cantidad: 0 };
+      }
+      porProducto[nombre].ingreso += Number(d['Subtotal']) || 0;
+      porProducto[nombre].cantidad += Number(d['Cantidad']) || 0;
+    });
+
+    const top = Object.values(porProducto)
+      .sort((a, b) => b.ingreso - a.ingreso)
+      .slice(0, 10);
+
+    const prodCont = document.getElementById('productos-contenido');
+    if (top.length === 0) {
+      prodCont.innerHTML = '<div style="color:#bbb;text-align:center;padding:10px">Sin ventas hoy</div>';
+    } else {
+      prodCont.innerHTML = top.map((p, i) => `
+        <div class="prod-fila">
+          <div class="prod-pos">${i + 1}</div>
+          <div class="prod-info">
+            <div class="prod-nombre">${p.nombre}</div>
+            <div class="prod-cat">${p.categoria} · ${p.cantidad % 1 === 0 ? p.cantidad : p.cantidad.toFixed(3)} vendidos</div>
+          </div>
+          <div class="prod-ingreso">${formatPesos(p.ingreso)}</div>
+        </div>`).join('');
+    }
+
+    // ── Timestamp ─────────────────────────────────────────────────────────
+    const hora = new Date().toLocaleTimeString('es-AR', {
+      timeZone: 'America/Argentina/Buenos_Aires',
+      hour: '2-digit', minute: '2-digit'
+    });
+    document.getElementById('ultimo-update').textContent = `Última actualización: ${hora}`;
+
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('sin-datos').style.display = 'block';
+    document.getElementById('sin-datos').textContent = 'Error al cargar datos: ' + e.message;
+  }
+}
+
+cargarDatos();
+
+// Auto-actualizar cada 2 minutos
+setInterval(cargarDatos, 120000);
+</script>
+</body>
+</html>

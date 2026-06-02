@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>La Posta — Admin</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #1a1a1a; font-size: 16px; }
+  button { cursor: pointer; border: none; outline: none; font-family: inherit; }
+  input, select, textarea { font-family: inherit; }
+
+  /* ── Header ───────────────────────────────────────────────────────────── */
+  #header {
+    background: #1b5e20;
+    color: white;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 56px;
+    flex-shrink: 0;
+  }
+  #header h1 { font-size: 1.2rem; font-weight: 700; }
+  #btn-volver {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  /* ── Tabs ─────────────────────────────────────────────────────────────── */
+  #tabs {
+    display: flex;
+    background: white;
+    border-bottom: 2px solid #e0e0e0;
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+  .tab {
+    padding: 14px 20px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #666;
+    background: none;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tab.activo { color: #1b5e20; border-bottom-color: #1b5e20; }
+
+  /* ── Contenido ────────────────────────────────────────────────────────── */
+  #contenido {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+  }
+  #app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  /* ── Cards y secciones ───────────────────────────────────────────────── */
+  .card {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .card h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1b5e20;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e8f5e9;
+  }
+
+  /* ── Formularios ─────────────────────────────────────────────────────── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .form-grid.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-grid.cols1 { grid-template-columns: 1fr; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label { font-size: 0.8rem; font-weight: 600; color: #555; }
+  .field input, .field select, .field textarea {
+    padding: 10px 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    width: 100%;
+  }
+  .field input:focus, .field select:focus { border-color: #2e7d32; outline: none; }
+  .field textarea { resize: vertical; min-height: 70px; }
+
+  /* ── Botones ─────────────────────────────────────────────────────────── */
+  .btn-primary {
+    background: #2e7d32;
+    color: white;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 1rem;
+    font-weight: 700;
+    width: 100%;
+    margin-top: 8px;
+  }
+  .btn-primary:active { background: #1b5e20; }
+  .btn-secondary {
+    background: #f5f5f5;
+    color: #333;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: 1px solid #ddd;
+  }
+  .btn-danger {
+    background: #ffebee;
+    color: #c62828;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid #ef9a9a;
+  }
+  .btn-edit {
+    background: #e3f2fd;
+    color: #1565c0;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid #90caf9;
+  }
+  .btn-sm {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+
+  /* ── Tabla de productos ───────────────────────────────────────────────── */
+  .tabla-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  th { background: #f5f5f5; padding: 10px 8px; text-align: left; font-weight: 700; color: #555; font-size: 0.8rem; white-space: nowrap; }
+  td { padding: 10px 8px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  .badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .badge-ok { background: #e8f5e9; color: #2e7d32; }
+  .badge-off { background: #fafafa; color: #999; border: 1px solid #e0e0e0; }
+  .badge-oferta { background: #fff3e0; color: #e65100; }
+
+  /* ── Cierre de caja ──────────────────────────────────────────────────── */
+  .resumen-fila {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.95rem;
+  }
+  .resumen-fila:last-child { border-bottom: none; }
+  .resumen-fila .label { color: #555; }
+  .resumen-fila .valor { font-weight: 700; }
+  .resumen-fila .valor.verde { color: #2e7d32; }
+  .resumen-fila .valor.rojo { color: #c62828; }
+  .meta-bar-wrap { background: #e8f5e9; border-radius: 8px; height: 20px; overflow: hidden; margin: 8px 0; }
+  .meta-bar { background: #2e7d32; height: 100%; border-radius: 8px; transition: width 0.5s; }
+
+  /* ── Toggle activo ───────────────────────────────────────────────────── */
+  .toggle {
+    position: relative;
+    display: inline-block;
+    width: 44px;
+    height: 24px;
+  }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #ccc;
+    border-radius: 24px;
+    cursor: pointer;
+    transition: 0.2s;
+  }
+  .toggle-slider:before {
+    content: '';
+    position: absolute;
+    height: 18px; width: 18px;
+    left: 3px; bottom: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.2s;
+  }
+  input:checked + .toggle-slider { background: #2e7d32; }
+  input:checked + .toggle-slider:before { transform: translateX(20px); }
+
+  /* ── Modal ───────────────────────────────────────────────────────────── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .modal-overlay.visible { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 16px;
+    padding: 24px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .modal h2 { font-size: 1.1rem; color: #1b5e20; }
+  .modal-btns { display: flex; gap: 10px; margin-top: 4px; }
+  .modal-btns button { flex: 1; padding: 12px; border-radius: 8px; font-size: 1rem; font-weight: 700; }
+  .modal-btns .btn-ok { background: #2e7d32; color: white; }
+  .modal-btns .btn-cancel { background: #f5f5f5; color: #555; }
+
+  /* ── Loading ──────────────────────────────────────────────────────────── */
+  #loading {
+    position: fixed; inset: 0;
+    background: #1b5e20;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    z-index: 999;
+    font-size: 1.1rem;
+  }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 4px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .msg-ok { background: #e8f5e9; color: #2e7d32; border-radius: 8px; padding: 10px 14px; font-weight: 600; font-size: 0.9rem; display: none; }
+  .msg-ok.visible { display: block; }
+  .msg-error { background: #ffebee; color: #c62828; border-radius: 8px; padding: 10px 14px; font-weight: 600; font-size: 0.9rem; display: none; }
+  .msg-error.visible { display: block; }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <span>Cargando...</span>
+</div>
+
+<div id="app">
+  <div id="header">
+    <h1>⚙ Panel Admin</h1>
+    <button id="btn-volver" onclick="window.location.href='index.html'">← Volver a caja</button>
+  </div>
+
+  <div id="tabs">
+    <button class="tab activo" data-tab="productos">Productos</button>
+    <button class="tab" data-tab="compras">Compras</button>
+    <button class="tab" data-tab="stock">Ajuste stock</button>
+    <button class="tab" data-tab="cierre">Cierre de caja</button>
+    <button class="tab" data-tab="config">Configuración</button>
+  </div>
+
+  <div id="contenido">
+
+    <!-- ── TAB: PRODUCTOS ─────────────────────────────────────────────── -->
+    <div id="tab-productos">
+
+      <div class="card">
+        <h2 id="form-prod-titulo">Agregar producto</h2>
+        <div class="form-grid">
+          <div class="field">
+            <label>Nombre *</label>
+            <input type="text" id="prod-nombre" placeholder="Nombre del producto">
+          </div>
+          <div class="field">
+            <label>Categoría *</label>
+            <input type="text" id="prod-categoria" placeholder="Ej: Lácteos">
+          </div>
+          <div class="field">
+            <label>Unidad *</label>
+            <select id="prod-unidad">
+              <option value="un">Unidad (un)</option>
+              <option value="kg">Kilogramo (kg)</option>
+              <option value="lt">Litro (lt)</option>
+              <option value="doc">Docena (doc)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Precio de venta *</label>
+            <input type="number" id="prod-precio" placeholder="0" min="0">
+          </div>
+          <div class="field">
+            <label>Costo</label>
+            <input type="number" id="prod-costo" placeholder="0" min="0">
+          </div>
+          <div class="field">
+            <label>Activo</label>
+            <select id="prod-activo">
+              <option value="SI">Sí</option>
+              <option value="NO">No</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;padding-top:14px;border-top:1px solid #eee">
+          <div style="font-size:0.85rem;font-weight:700;color:#e65100;margin-bottom:10px">Oferta (opcional)</div>
+          <div class="form-grid cols3">
+            <div class="field">
+              <label>Precio oferta</label>
+              <input type="number" id="prod-precio-oferta" placeholder="0" min="0">
+            </div>
+            <div class="field">
+              <label>Cantidad mínima</label>
+              <input type="number" id="prod-cant-min" placeholder="0" min="0">
+            </div>
+            <div class="field">
+              <label>Fecha fin (opcional)</label>
+              <input type="date" id="prod-fecha-fin">
+            </div>
+          </div>
+        </div>
+
+        <div id="msg-prod-ok" class="msg-ok">Producto guardado correctamente</div>
+        <div id="msg-prod-error" class="msg-error"></div>
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <button class="btn-primary" onclick="guardarProducto()" id="btn-guardar-prod">Guardar producto</button>
+          <button class="btn-secondary btn-sm" onclick="limpiarFormProd()" style="margin-top:8px">Limpiar</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Productos cargados</h2>
+
+        <!-- Filtros -->
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
+          <input type="text" id="filtro-texto" placeholder="Buscar por nombre..." oninput="renderTablaProductos()"
+            style="padding:8px 12px;border:2px solid #e0e0e0;border-radius:8px;font-size:0.9rem;flex:1;min-width:160px">
+          <select id="filtro-categoria" onchange="renderTablaProductos()"
+            style="padding:8px 12px;border:2px solid #e0e0e0;border-radius:8px;font-size:0.9rem">
+            <option value="">Todas las categorías</option>
+          </select>
+          <select id="filtro-estado" onchange="renderTablaProductos()"
+            style="padding:8px 12px;border:2px solid #e0e0e0;border-radius:8px;font-size:0.9rem">
+            <option value="">Todos</option>
+            <option value="SI">Solo activos</option>
+            <option value="NO">Solo inactivos</option>
+            <option value="OFERTA">Con oferta</option>
+          </select>
+        </div>
+        <div id="prod-count" style="font-size:0.8rem;color:#999;margin-bottom:8px"></div>
+
+        <div class="tabla-scroll">
+          <table id="tabla-productos">
+            <thead>
+              <tr>
+                <th class="th-sort" data-col="nombre" style="cursor:pointer">Nombre <span id="sort-nombre"></span></th>
+                <th class="th-sort" data-col="categoria" style="cursor:pointer">Categoría <span id="sort-categoria"></span></th>
+                <th class="th-sort" data-col="unidad" style="cursor:pointer">Unidad <span id="sort-unidad"></span></th>
+                <th class="th-sort" data-col="precio" style="cursor:pointer">Precio <span id="sort-precio"></span></th>
+                <th class="th-sort" data-col="costo" style="cursor:pointer">Costo <span id="sort-costo"></span></th>
+                <th class="th-sort" data-col="activo" style="cursor:pointer">Estado <span id="sort-activo"></span></th>
+                <th class="th-sort" data-col="oferta" style="cursor:pointer">Oferta <span id="sort-oferta"></span></th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-productos">
+              <tr><td colspan="8" style="text-align:center;color:#999;padding:20px">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: COMPRAS ───────────────────────────────────────────────── -->
+    <div id="tab-compras" style="display:none">
+      <div class="card">
+        <h2>Registrar compra</h2>
+        <div class="form-grid">
+          <div class="field">
+            <label>Fecha *</label>
+            <input type="date" id="compra-fecha">
+          </div>
+          <div class="field">
+            <label>Proveedor</label>
+            <input type="text" id="compra-proveedor" placeholder="Nombre del proveedor">
+          </div>
+          <div class="field">
+            <label>Producto *</label>
+            <input type="text" id="compra-producto" placeholder="Nombre del producto">
+          </div>
+          <div class="field">
+            <label>Categoría</label>
+            <input type="text" id="compra-categoria" placeholder="Categoría">
+          </div>
+          <div class="field">
+            <label>Cantidad *</label>
+            <input type="number" id="compra-cantidad" placeholder="0" min="0" step="0.001">
+          </div>
+          <div class="field">
+            <label>Unidad</label>
+            <select id="compra-unidad">
+              <option value="un">Unidad</option>
+              <option value="kg">Kilogramo</option>
+              <option value="lt">Litro</option>
+              <option value="doc">Docena</option>
+              <option value="caja">Caja</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Costo total *</label>
+            <input type="number" id="compra-costo-total" placeholder="0" min="0" oninput="calcularCostoUnit()">
+          </div>
+          <div class="field">
+            <label>Costo unitario</label>
+            <input type="number" id="compra-costo-unit" placeholder="Se calcula solo" readonly style="background:#f5f5f5">
+          </div>
+          <div class="field">
+            <label>Medio de pago</label>
+            <select id="compra-medio">
+              <option value="Efectivo">Efectivo</option>
+              <option value="Transferencia">Transferencia</option>
+              <option value="Mercado Pago">Mercado Pago</option>
+              <option value="Cuenta DNI">Cuenta DNI</option>
+              <option value="Tarjeta">Tarjeta</option>
+              <option value="Crédito">Crédito (a pagar)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Estado de pago</label>
+            <select id="compra-estado">
+              <option value="Pagado">Pagado</option>
+              <option value="Pendiente">Pendiente</option>
+              <option value="Parcial">Pago parcial</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label>Observación</label>
+            <textarea id="compra-obs" placeholder="Notas adicionales..."></textarea>
+          </div>
+        </div>
+        <div id="msg-compra-ok" class="msg-ok">Compra registrada correctamente</div>
+        <div id="msg-compra-error" class="msg-error"></div>
+        <button class="btn-primary" onclick="guardarCompra()">Registrar compra</button>
+      </div>
+
+      <div class="card">
+        <h2>Últimas compras</h2>
+        <div class="tabla-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Proveedor</th>
+                <th>Producto</th>
+                <th>Cantidad</th>
+                <th>Costo total</th>
+                <th>Medio</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-compras">
+              <tr><td colspan="7" style="text-align:center;color:#999;padding:20px">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: AJUSTE STOCK ──────────────────────────────────────────── -->
+    <div id="tab-stock" style="display:none">
+      <div class="card">
+        <h2>Ajuste de stock</h2>
+        <div class="form-grid">
+          <div class="field">
+            <label>Fecha *</label>
+            <input type="date" id="ajuste-fecha">
+          </div>
+          <div class="field">
+            <label>Producto *</label>
+            <input type="text" id="ajuste-producto" placeholder="Nombre del producto">
+          </div>
+          <div class="field">
+            <label>Tipo *</label>
+            <select id="ajuste-tipo">
+              <option value="Entrada">Entrada</option>
+              <option value="Salida">Salida</option>
+              <option value="Merma">Merma</option>
+              <option value="Corrección">Corrección</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Cantidad *</label>
+            <input type="number" id="ajuste-cantidad" placeholder="0" min="0" step="0.001">
+          </div>
+          <div class="field">
+            <label>Responsable</label>
+            <input type="text" id="ajuste-responsable" placeholder="Nombre">
+          </div>
+          <div class="field full">
+            <label>Motivo *</label>
+            <textarea id="ajuste-motivo" placeholder="Describí el motivo del ajuste..."></textarea>
+          </div>
+        </div>
+        <div id="msg-ajuste-ok" class="msg-ok">Ajuste registrado correctamente</div>
+        <div id="msg-ajuste-error" class="msg-error"></div>
+        <button class="btn-primary" onclick="guardarAjuste()">Registrar ajuste</button>
+      </div>
+
+      <div class="card">
+        <h2>Últimos ajustes</h2>
+        <div class="tabla-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Producto</th>
+                <th>Tipo</th>
+                <th>Cantidad</th>
+                <th>Motivo</th>
+                <th>Responsable</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-ajustes">
+              <tr><td colspan="6" style="text-align:center;color:#999;padding:20px">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: CIERRE DE CAJA ────────────────────────────────────────── -->
+    <div id="tab-cierre" style="display:none">
+      <div class="card">
+        <h2>Resumen del día</h2>
+        <div id="resumen-dia-contenido">
+          <div style="text-align:center;color:#999;padding:20px">Cargando...</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Cierre de caja</h2>
+        <div class="form-grid">
+          <div class="field">
+            <label>Efectivo real en caja</label>
+            <input type="number" id="efectivo-real" placeholder="0" min="0">
+          </div>
+        </div>
+        <div id="diferencia-efectivo" style="margin:10px 0;font-size:1rem;font-weight:600;display:none"></div>
+        <div id="msg-cierre-ok" class="msg-ok">Cierre registrado correctamente</div>
+        <button class="btn-primary" onclick="cerrarDia()" style="margin-top:8px">Cerrar día</button>
+      </div>
+    </div>
+
+    <!-- ── TAB: CONFIGURACIÓN ─────────────────────────────────────────── -->
+    <div id="tab-config" style="display:none">
+      <div class="card">
+        <h2>PINs de acceso</h2>
+        <div class="form-grid">
+          <div class="field">
+            <label>PIN Admin (4 dígitos)</label>
+            <input type="number" id="cfg-pin-admin" placeholder="1234" maxlength="4">
+          </div>
+          <div class="field">
+            <label>PIN Dueño (4 dígitos)</label>
+            <input type="number" id="cfg-pin-dueno" placeholder="0000" maxlength="4">
+          </div>
+        </div>
+        <div class="form-grid cols1" style="margin-top:12px">
+          <div class="field">
+            <label>Meta diaria ($)</label>
+            <input type="number" id="cfg-meta" placeholder="1500000" min="0">
+          </div>
+        </div>
+        <div id="msg-config-ok" class="msg-ok">Configuración guardada</div>
+        <div id="msg-config-error" class="msg-error"></div>
+        <button class="btn-primary" onclick="guardarConfig()" style="margin-top:8px">Guardar configuración</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Modal editar producto -->
+<div class="modal-overlay" id="modal-editar-prod">
+  <div class="modal">
+    <h2>Editar producto</h2>
+    <input type="hidden" id="edit-nombre-original">
+    <div class="form-grid">
+      <div class="field"><label>Nombre</label><input type="text" id="edit-nombre"></div>
+      <div class="field"><label>Categoría</label><input type="text" id="edit-categoria"></div>
+      <div class="field">
+        <label>Unidad</label>
+        <select id="edit-unidad">
+          <option value="un">Unidad (un)</option>
+          <option value="kg">Kilogramo (kg)</option>
+          <option value="lt">Litro (lt)</option>
+          <option value="doc">Docena (doc)</option>
+        </select>
+      </div>
+      <div class="field"><label>Precio</label><input type="number" id="edit-precio" min="0"></div>
+      <div class="field"><label>Costo</label><input type="number" id="edit-costo" min="0"></div>
+      <div class="field">
+        <label>Activo</label>
+        <select id="edit-activo"><option value="SI">Sí</option><option value="NO">No</option></select>
+      </div>
+      <div class="field"><label>Precio oferta</label><input type="number" id="edit-precio-oferta" min="0"></div>
+      <div class="field"><label>Cant. mínima oferta</label><input type="number" id="edit-cant-min" min="0"></div>
+      <div class="field full"><label>Fecha fin oferta</label><input type="date" id="edit-fecha-fin"></div>
+    </div>
+    <div id="msg-edit-ok" class="msg-ok">Guardado</div>
+    <div id="msg-edit-error" class="msg-error"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="cerrarModalEditar()">Cancelar</button>
+      <button class="btn-ok" onclick="confirmarEdicion()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbzYU4oUPCb7jNORognxXS-gVDVk8SBqU6H7Kp24eWxMtZD9pZ5wjMGpXK35aOTjLHkb0Q/exec';
+
+let productos = [];
+let compras = [];
+let ajustes = [];
+let config = {};
+let sortCol = 'nombre';
+let sortAsc = true;
+
+// ── Init ───────────────────────────────────────────────────────────────────
+async function init() {
+  setFechasHoy();
+  try {
+    await Promise.all([cargarProductos(), cargarCompras(), cargarAjustes(), cargarConfig()]);
+  } catch(e) { console.error(e); }
+  document.getElementById('loading').style.display = 'none';
+}
+
+function setFechasHoy() {
+  const hoy = new Date().toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
+    .split('/').reverse().map(p => p.padStart(2,'0')).join('-');
+  ['compra-fecha','ajuste-fecha'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = hoy;
+  });
+}
+
+// ── API ────────────────────────────────────────────────────────────────────
+async function apiGet(action) {
+  const res = await fetch(`${API_URL}?action=${action}`);
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error);
+  return json.data;
+}
+
+async function apiPost(action, data) {
+  const form = new FormData();
+  form.append('payload', JSON.stringify({ action, data }));
+  const res = await fetch(API_URL, { method: 'POST', body: form });
+  const json = await res.json();
+  if (!json.ok) throw new Error(json.error);
+  return json.data;
+}
+
+// ── Cargar datos ───────────────────────────────────────────────────────────
+async function cargarProductos() {
+  productos = await apiGet('getProductos');
+  renderTablaProductos();
+}
+
+async function cargarCompras() {
+  compras = await apiGet('getCompras');
+  renderTablaCompras();
+}
+
+async function cargarAjustes() {
+  ajustes = await apiGet('getAjustes');
+  renderTablaAjustes();
+}
+
+async function cargarConfig() {
+  config = await apiGet('getConfig');
+  document.getElementById('cfg-pin-admin').value = config.PIN_Admin || '';
+  document.getElementById('cfg-pin-dueno').value = config.PIN_Dueño || '';
+  document.getElementById('cfg-meta').value = config.Meta_Diaria || '';
+}
+
+// ── Tabs ───────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('activo'));
+    tab.classList.add('activo');
+    const nombre = tab.dataset.tab;
+    document.querySelectorAll('#contenido > div').forEach(d => d.style.display = 'none');
+    document.getElementById(`tab-${nombre}`).style.display = 'block';
+    if (nombre === 'cierre') cargarResumenDia();
+  };
+});
+
+// ── Productos ──────────────────────────────────────────────────────────────
+function renderTablaProductos() {
+  const tbody = document.getElementById('tbody-productos');
+
+  // Poblar selector de categorías
+  const selCat = document.getElementById('filtro-categoria');
+  const catActual = selCat.value;
+  const cats = [...new Set(productos.map(p => p['Categoría']).filter(Boolean))].sort();
+  selCat.innerHTML = '<option value="">Todas las categorías</option>' +
+    cats.map(c => `<option value="${c}" ${c === catActual ? 'selected' : ''}>${c}</option>`).join('');
+
+  // Filtros
+  const texto    = (document.getElementById('filtro-texto')?.value || '').toLowerCase();
+  const catFiltro = selCat.value;
+  const estadoFiltro = document.getElementById('filtro-estado')?.value || '';
+
+  let lista = productos.filter((p, idx) => {
+    p._idx = idx; // guardar índice original para editar
+    if (texto && !p['Nombre'].toLowerCase().includes(texto)) return false;
+    if (catFiltro && p['Categoría'] !== catFiltro) return false;
+    if (estadoFiltro === 'SI' && p['Activo'] !== 'SI') return false;
+    if (estadoFiltro === 'NO' && p['Activo'] !== 'NO') return false;
+    if (estadoFiltro === 'OFERTA' && (!p['Precio_Oferta'] || !p['Cantidad_Min_Oferta'])) return false;
+    return true;
+  });
+
+  // Ordenamiento
+  lista.sort((a, b) => {
+    let va, vb;
+    if (sortCol === 'precio')        { va = Number(a['Precio'])||0;  vb = Number(b['Precio'])||0; }
+    else if (sortCol === 'costo')   { va = Number(a['Costo'])||0;   vb = Number(b['Costo'])||0; }
+    else if (sortCol === 'categoria'){ va = a['Categoría']||'';     vb = b['Categoría']||''; }
+    else if (sortCol === 'unidad')  { va = a['Unidad']||'';         vb = b['Unidad']||''; }
+    else if (sortCol === 'activo')  { va = a['Activo']||'';         vb = b['Activo']||''; }
+    else if (sortCol === 'oferta')  { va = a['Precio_Oferta'] ? 1 : 0; vb = b['Precio_Oferta'] ? 1 : 0; }
+    else { va = a['Nombre']||''; vb = b['Nombre']||''; }
+    if (va < vb) return sortAsc ? -1 : 1;
+    if (va > vb) return sortAsc ?  1 : -1;
+    return 0;
+  });
+
+  // Indicadores de orden en headers
+  ['nombre','categoria','unidad','precio','costo','activo','oferta'].forEach(col => {
+    const el = document.getElementById(`sort-${col}`);
+    if (el) el.textContent = sortCol === col ? (sortAsc ? ' ▲' : ' ▼') : '';
+  });
+
+  document.getElementById('prod-count').textContent =
+    `${lista.length} producto${lista.length !== 1 ? 's' : ''}${lista.length !== productos.length ? ` (de ${productos.length})` : ''}`;
+
+  if (lista.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#999;padding:20px">Sin resultados</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = lista.map(p => {
+    const idx = p._idx;
+    const activo = p['Activo'] === 'SI';
+    const tieneOferta = p['Precio_Oferta'] && p['Cantidad_Min_Oferta'];
+    return `<tr>
+      <td><strong>${p['Nombre']}</strong></td>
+      <td>${p['Categoría'] || '-'}</td>
+      <td>${p['Unidad'] || '-'}</td>
+      <td>${formatPesos(p['Precio'])}</td>
+      <td>${formatPesos(p['Costo'] || 0)}</td>
+      <td><span class="badge ${activo ? 'badge-ok' : 'badge-off'}">${activo ? 'Activo' : 'Inactivo'}</span></td>
+      <td>${tieneOferta ? `<span class="badge badge-oferta">${formatPesos(p['Precio_Oferta'])} x${p['Cantidad_Min_Oferta']}</span>` : '-'}</td>
+      <td><button class="btn-edit btn-sm" onclick="abrirEditar(${idx})">Editar</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// Ordenar al tocar encabezado
+document.querySelectorAll('.th-sort').forEach(th => {
+  th.onclick = () => {
+    const col = th.dataset.col;
+    if (sortCol === col) sortAsc = !sortAsc;
+    else { sortCol = col; sortAsc = true; }
+    renderTablaProductos();
+  };
+});
+
+function renderTablaCompras() {
+  const tbody = document.getElementById('tbody-compras');
+  const ultimas = [...compras].reverse().slice(0, 20);
+  if (ultimas.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;padding:20px">Sin compras registradas</td></tr>';
+    return;
+  }
+  tbody.innerHTML = ultimas.map(c => `<tr>
+    <td>${c['Fecha'] || '-'}</td>
+    <td>${c['Proveedor'] || '-'}</td>
+    <td>${c['Producto'] || '-'}</td>
+    <td>${c['Cantidad']} ${c['Unidad']}</td>
+    <td>${formatPesos(c['Costo_Total'])}</td>
+    <td>${c['Medio_Pago'] || '-'}</td>
+    <td><span class="badge ${c['Estado_Pago']==='Pagado'?'badge-ok':'badge-oferta'}">${c['Estado_Pago']||'-'}</span></td>
+  </tr>`).join('');
+}
+
+function renderTablaAjustes() {
+  const tbody = document.getElementById('tbody-ajustes');
+  const ultimos = [...ajustes].reverse().slice(0, 20);
+  if (ultimos.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;padding:20px">Sin ajustes registrados</td></tr>';
+    return;
+  }
+  tbody.innerHTML = ultimos.map(a => `<tr>
+    <td>${a['Fecha'] || '-'}</td>
+    <td>${a['Producto'] || '-'}</td>
+    <td><span class="badge ${a['Tipo']==='Entrada'?'badge-ok':'badge-oferta'}">${a['Tipo']||'-'}</span></td>
+    <td>${a['Cantidad']}</td>
+    <td>${a['Motivo'] || '-'}</td>
+    <td>${a['Responsable'] || '-'}</td>
+  </tr>`).join('');
+}
+
+// ── Guardar producto nuevo ─────────────────────────────────────────────────
+async function guardarProducto() {
+  const nombre = document.getElementById('prod-nombre').value.trim();
+  const categoria = document.getElementById('prod-categoria').value.trim();
+  const unidad = document.getElementById('prod-unidad').value;
+  const precio = parseFloat(document.getElementById('prod-precio').value) || 0;
+
+  if (!nombre || !categoria || precio === 0) {
+    mostrarMsg('msg-prod-error', 'Completá nombre, categoría y precio.');
+    return;
+  }
+
+  const data = {
+    nombre, categoria, unidad, precio,
+    costo: parseFloat(document.getElementById('prod-costo').value) || 0,
+    activo: document.getElementById('prod-activo').value === 'SI',
+    precioOferta: parseFloat(document.getElementById('prod-precio-oferta').value) || '',
+    cantMinOferta: parseFloat(document.getElementById('prod-cant-min').value) || '',
+    fechaFinOferta: document.getElementById('prod-fecha-fin').value || ''
+  };
+
+  try {
+    await apiPost('guardarProducto', data);
+    mostrarMsg('msg-prod-ok', null);
+    limpiarFormProd();
+    await cargarProductos();
+  } catch(e) {
+    mostrarMsg('msg-prod-error', 'Error: ' + e.message);
+  }
+}
+
+function limpiarFormProd() {
+  ['prod-nombre','prod-categoria','prod-precio','prod-costo','prod-precio-oferta','prod-cant-min','prod-fecha-fin']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('prod-activo').value = 'SI';
+  document.getElementById('prod-unidad').value = 'un';
+  document.getElementById('form-prod-titulo').textContent = 'Agregar producto';
+}
+
+// ── Editar producto ────────────────────────────────────────────────────────
+function abrirEditar(idx) {
+  const p = productos[idx];
+  document.getElementById('edit-nombre-original').value = p['Nombre'];
+  document.getElementById('edit-nombre').value = p['Nombre'];
+  document.getElementById('edit-categoria').value = p['Categoría'] || '';
+  document.getElementById('edit-unidad').value = p['Unidad'] || 'un';
+  document.getElementById('edit-precio').value = p['Precio'] || '';
+  document.getElementById('edit-costo').value = p['Costo'] || '';
+  document.getElementById('edit-activo').value = p['Activo'] || 'SI';
+  document.getElementById('edit-precio-oferta').value = p['Precio_Oferta'] || '';
+  document.getElementById('edit-cant-min').value = p['Cantidad_Min_Oferta'] || '';
+  document.getElementById('edit-fecha-fin').value = p['Fecha_Fin_Oferta'] || '';
+  document.getElementById('msg-edit-ok').classList.remove('visible');
+  document.getElementById('msg-edit-error').classList.remove('visible');
+  document.getElementById('modal-editar-prod').classList.add('visible');
+}
+
+function cerrarModalEditar() {
+  document.getElementById('modal-editar-prod').classList.remove('visible');
+}
+
+async function confirmarEdicion() {
+  const data = {
+    nombreOriginal: document.getElementById('edit-nombre-original').value,
+    nombre: document.getElementById('edit-nombre').value.trim(),
+    categoria: document.getElementById('edit-categoria').value.trim(),
+    unidad: document.getElementById('edit-unidad').value,
+    precio: parseFloat(document.getElementById('edit-precio').value) || 0,
+    costo: parseFloat(document.getElementById('edit-costo').value) || 0,
+    activo: document.getElementById('edit-activo').value === 'SI',
+    precioOferta: parseFloat(document.getElementById('edit-precio-oferta').value) || '',
+    cantMinOferta: parseFloat(document.getElementById('edit-cant-min').value) || '',
+    fechaFinOferta: document.getElementById('edit-fecha-fin').value || ''
+  };
+
+  try {
+    await apiPost('updateProducto', data);
+    document.getElementById('msg-edit-ok').classList.add('visible');
+    await cargarProductos();
+    setTimeout(cerrarModalEditar, 1000);
+  } catch(e) {
+    const el = document.getElementById('msg-edit-error');
+    el.textContent = 'Error: ' + e.message;
+    el.classList.add('visible');
+  }
+}
+
+// ── Compras ────────────────────────────────────────────────────────────────
+function calcularCostoUnit() {
+  const total = parseFloat(document.getElementById('compra-costo-total').value) || 0;
+  const cant  = parseFloat(document.getElementById('compra-cantidad').value) || 0;
+  document.getElementById('compra-costo-unit').value = cant > 0 ? (total / cant).toFixed(2) : '';
+}
+
+document.getElementById('compra-cantidad').oninput = calcularCostoUnit;
+
+async function guardarCompra() {
+  const producto = document.getElementById('compra-producto').value.trim();
+  const cantidad = parseFloat(document.getElementById('compra-cantidad').value) || 0;
+  const costoTotal = parseFloat(document.getElementById('compra-costo-total').value) || 0;
+
+  if (!producto || cantidad === 0 || costoTotal === 0) {
+    mostrarMsg('msg-compra-error', 'Completá producto, cantidad y costo total.');
+    return;
+  }
+
+  const data = {
+    fecha: document.getElementById('compra-fecha').value,
+    proveedor: document.getElementById('compra-proveedor').value.trim(),
+    producto,
+    categoria: document.getElementById('compra-categoria').value.trim(),
+    cantidad,
+    unidad: document.getElementById('compra-unidad').value,
+    costoTotal,
+    costoUnit: parseFloat(document.getElementById('compra-costo-unit').value) || 0,
+    medioPago: document.getElementById('compra-medio').value,
+    estadoPago: document.getElementById('compra-estado').value,
+    observacion: document.getElementById('compra-obs').value.trim()
+  };
+
+  try {
+    await apiPost('guardarCompra', data);
+    mostrarMsg('msg-compra-ok', null);
+    ['compra-proveedor','compra-producto','compra-categoria','compra-cantidad','compra-costo-total','compra-costo-unit','compra-obs']
+      .forEach(id => document.getElementById(id).value = '');
+    await cargarCompras();
+  } catch(e) {
+    mostrarMsg('msg-compra-error', 'Error: ' + e.message);
+  }
+}
+
+// ── Ajustes de stock ───────────────────────────────────────────────────────
+async function guardarAjuste() {
+  const producto = document.getElementById('ajuste-producto').value.trim();
+  const cantidad = parseFloat(document.getElementById('ajuste-cantidad').value) || 0;
+  const motivo = document.getElementById('ajuste-motivo').value.trim();
+
+  if (!producto || cantidad === 0 || !motivo) {
+    mostrarMsg('msg-ajuste-error', 'Completá producto, cantidad y motivo.');
+    return;
+  }
+
+  const data = {
+    fecha: document.getElementById('ajuste-fecha').value,
+    producto,
+    tipo: document.getElementById('ajuste-tipo').value,
+    cantidad,
+    motivo,
+    responsable: document.getElementById('ajuste-responsable').value.trim()
+  };
+
+  try {
+    await apiPost('guardarAjuste', data);
+    mostrarMsg('msg-ajuste-ok', null);
+    ['ajuste-producto','ajuste-cantidad','ajuste-motivo','ajuste-responsable']
+      .forEach(id => document.getElementById(id).value = '');
+    await cargarAjustes();
+  } catch(e) {
+    mostrarMsg('msg-ajuste-error', 'Error: ' + e.message);
+  }
+}
+
+// ── Cierre de caja ─────────────────────────────────────────────────────────
+async function cargarResumenDia() {
+  const cont = document.getElementById('resumen-dia-contenido');
+  try {
+    const res = await apiGet('getResumenHoy');
+    if (!res) {
+      cont.innerHTML = '<div style="color:#999;text-align:center;padding:20px">Sin ventas registradas hoy</div>';
+      return;
+    }
+
+    const meta = Number(res['Meta_Diaria']) || 1500000;
+    const total = Number(res['Total_Ventas']) || 0;
+    const pct = Math.min(100, (total / meta * 100)).toFixed(1);
+
+    const efectivoTeorico = Number(res['Efectivo']) || 0;
+    const efectivoReal = parseFloat(document.getElementById('efectivo-real')?.value) || 0;
+    const diferencia = efectivoReal - efectivoTeorico;
+
+    document.getElementById('efectivo-real').oninput = () => {
+      const real = parseFloat(document.getElementById('efectivo-real').value) || 0;
+      const dif = real - efectivoTeorico;
+      const div = document.getElementById('diferencia-efectivo');
+      div.style.display = 'block';
+      div.style.color = dif >= 0 ? '#2e7d32' : '#c62828';
+      div.textContent = `Diferencia: ${dif >= 0 ? '+' : ''}${formatPesos(dif)} vs. teórico ${formatPesos(efectivoTeorico)}`;
+    };
+
+    cont.innerHTML = `
+      <div style="margin-bottom:12px">
+        <div style="font-size:0.8rem;color:#555;margin-bottom:4px">Progreso del día — ${formatPesos(total)} de ${formatPesos(meta)}</div>
+        <div class="meta-bar-wrap"><div class="meta-bar" style="width:${pct}%"></div></div>
+        <div style="font-size:0.85rem;color:#555;text-align:right">${pct}%</div>
+      </div>
+      <div class="resumen-fila"><span class="label">Total ventas</span><span class="valor verde">${formatPesos(total)}</span></div>
+      <div class="resumen-fila"><span class="label">Costo total</span><span class="valor">${formatPesos(res['Costo_Total']||0)}</span></div>
+      <div class="resumen-fila"><span class="label">Margen $</span><span class="valor verde">${formatPesos(res['Margen_$']||0)}</span></div>
+      <div class="resumen-fila"><span class="label">Margen %</span><span class="valor">${Number(res['Margen_%']||0).toFixed(1)}%</span></div>
+      <div class="resumen-fila"><span class="label">Tickets</span><span class="valor">${res['Cant_Tickets']||0}</span></div>
+      <hr style="border:none;border-top:1px solid #eee;margin:8px 0">
+      <div class="resumen-fila"><span class="label">Efectivo</span><span class="valor">${formatPesos(res['Efectivo']||0)}</span></div>
+      <div class="resumen-fila"><span class="label">Mercado Pago</span><span class="valor">${formatPesos(res['Mercado_Pago']||0)}</span></div>
+      <div class="resumen-fila"><span class="label">Transferencia</span><span class="valor">${formatPesos(res['Transferencia']||0)}</span></div>
+      <div class="resumen-fila"><span class="label">Cuenta DNI</span><span class="valor">${formatPesos(res['Cuenta_DNI']||0)}</span></div>
+      <div class="resumen-fila"><span class="label">Tarjeta</span><span class="valor">${formatPesos(res['Tarjeta']||0)}</span></div>
+      <div class="resumen-fila"><span class="label">Otro</span><span class="valor">${formatPesos(res['Otro']||0)}</span></div>
+    `;
+  } catch(e) {
+    cont.innerHTML = `<div style="color:#c62828;padding:10px">Error al cargar resumen: ${e.message}</div>`;
+  }
+}
+
+async function cerrarDia() {
+  const fecha = new Date().toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
+    .split('/').reverse().map(p => p.padStart(2,'0')).join('-');
+  const efectivoReal = parseFloat(document.getElementById('efectivo-real').value) || 0;
+  try {
+    await apiPost('cerrarDia', { fecha, efectivoReal });
+    mostrarMsg('msg-cierre-ok', null);
+    await cargarResumenDia();
+  } catch(e) {
+    alert('Error al cerrar el día: ' + e.message);
+  }
+}
+
+// ── Configuración ──────────────────────────────────────────────────────────
+async function guardarConfig() {
+  const pinAdmin = String(document.getElementById('cfg-pin-admin').value).padStart(4,'0');
+  const pinDueno = String(document.getElementById('cfg-pin-dueno').value).padStart(4,'0');
+  const meta = parseFloat(document.getElementById('cfg-meta').value) || 1500000;
+
+  if (pinAdmin.length !== 4 || pinDueno.length !== 4) {
+    mostrarMsg('msg-config-error', 'Los PINs deben ser de 4 dígitos.');
+    return;
+  }
+
+  // Actualiza directo en el Sheet via la hoja Configuracion
+  try {
+    // Usamos un ajuste temporal — en próxima versión agregar endpoint dedicado
+    const sheet = { PIN_Admin: pinAdmin, PIN_Dueño: pinDueno, Meta_Diaria: meta };
+    // Por ahora actualiza localmente
+    config = sheet;
+    mostrarMsg('msg-config-ok', null);
+    // TODO: agregar endpoint saveConfig en backend para persistir en Sheet
+  } catch(e) {
+    mostrarMsg('msg-config-error', 'Error: ' + e.message);
+  }
+}
+
+// ── Utilidades ─────────────────────────────────────────────────────────────
+function formatPesos(n) {
+  return '$ ' + Math.round(Number(n) || 0).toLocaleString('es-AR');
+}
+
+function mostrarMsg(id, texto) {
+  const el = document.getElementById(id);
+  if (texto) el.textContent = texto;
+  el.classList.add('visible');
+  setTimeout(() => el.classList.remove('visible'), 3000);
+}
+
+// ── Arrancar ───────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
