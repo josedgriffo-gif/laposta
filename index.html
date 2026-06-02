@@ -428,7 +428,7 @@
 
   <!-- Header -->
   <div id="header">
-    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v1.6</span></h1>
+    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v1.7</span></h1>
     <div id="header-right">
       <span id="offline-badge">SIN CONEXIÓN</span>
       <button id="btn-admin">Admin</button>
@@ -918,7 +918,8 @@ function renderCamposPago(medio) {
       cont.appendChild(div);
       div.querySelector('input').oninput = validarMixto;
     });
-    document.getElementById('btn-confirmar-venta').disabled = false;
+    // En Mixto el botón arranca bloqueado hasta cubrir el total
+    document.getElementById('btn-confirmar-venta').disabled = true;
   } else {
     document.getElementById('btn-confirmar-venta').disabled = false;
   }
@@ -944,12 +945,20 @@ function validarMixto() {
     return s + (parseFloat(el?.value) || 0);
   }, 0);
   const vuelto = document.getElementById('vuelto-display');
+  const btn = document.getElementById('btn-confirmar-venta');
   if (suma >= total) {
-    vuelto.textContent = `Cubierto: ${formatPesos(suma)} (diferencia: ${formatPesos(suma - total)})`;
+    const dif = suma - total;
+    vuelto.textContent = dif > 0
+      ? `Cubierto: ${formatPesos(suma)} (vuelto/diferencia: ${formatPesos(dif)})`
+      : `Cubierto exacto: ${formatPesos(suma)}`;
+    vuelto.style.color = '#1b5e20';
     vuelto.classList.add('visible');
+    btn.disabled = false; // ahora sí se puede confirmar
   } else {
     vuelto.textContent = `Falta: ${formatPesos(total - suma)}`;
+    vuelto.style.color = '#c62828';
     vuelto.classList.add('visible');
+    btn.disabled = true; // bloqueado hasta cubrir
   }
 }
 
@@ -966,8 +975,11 @@ document.getElementById('btn-confirmar-venta').onclick = async () => {
 
   try {
     if (navigator.onLine) {
-      await apiPost('guardarVenta', datos);
+      // El servidor genera el ticket definitivo (único global) y lo devuelve
+      const res = await apiPost('guardarVenta', datos);
+      if (res && res.ticket) datos.ticket = res.ticket;
     } else {
+      datos.ticketProvisional = true;
       ventasPendientes.push(datos);
       localStorage.setItem('ventas_pendientes', JSON.stringify(ventasPendientes));
     }
@@ -976,6 +988,7 @@ document.getElementById('btn-confirmar-venta').onclick = async () => {
     carrito = [];
     renderCarrito();
   } catch(e) {
+    datos.ticketProvisional = true;
     ventasPendientes.push(datos);
     localStorage.setItem('ventas_pendientes', JSON.stringify(ventasPendientes));
     document.getElementById('modal-cobro').classList.remove('visible');

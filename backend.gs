@@ -52,6 +52,7 @@ function doPost(e) {
       case 'initStock':            return ok(initStock());
       case 'cerrarDia':          return ok(cerrarDia(body.data));
       case 'recalcularResumen':  return ok(recalcularResumen(body.data));
+      case 'guardarConfig':      return ok(guardarConfig(body.data));
       default:                return error('Acción desconocida: ' + action);
     }
   } catch (err) {
@@ -106,10 +107,24 @@ function getConfig() {
   const sheet = getSheet('Configuracion');
   const data = sheet.getDataRange().getValues();
   return {
-    PIN_Admin:    String(data[1][0]),
+    PIN_Admin:    String(data[1][0]).padStart(4, '0'),
     PIN_Dueño:    String(data[1][1]).padStart(4, '0'),
     Meta_Diaria:  data[1][2]
   };
+}
+
+/**
+ * Guarda la configuración (PINs y meta diaria) en la hoja Configuracion.
+ * data = { pinAdmin, pinDueno, metaDiaria }
+ */
+function guardarConfig(data) {
+  const sheet = getSheet('Configuracion');
+  sheet.getRange(2, 1, 1, 3).setValues([[
+    String(data.pinAdmin).padStart(4, '0'),
+    String(data.pinDueno).padStart(4, '0'),
+    Number(data.metaDiaria) || 1500000
+  ]]);
+  return getConfig();
 }
 
 function getVentasHoy() {
@@ -144,64 +159,94 @@ function getAjustes() {
  * }
  */
 function guardarVenta(data) {
-  const ss = SpreadsheetApp.openById(SHEET_ID);
+  // ── LOCK: evita que dos ventas simultáneas se pisen ──
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000); // espera hasta 30s por el turno
 
-  // ── BD_Ventas ──
-  const sheetVentas = ss.getSheetByName('BD_Ventas');
-  const lastRow = sheetVentas.getLastRow();
-  const id = lastRow; // ID autoincremental (fila - 1 encabezado)
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheetVentas = ss.getSheetByName('BD_Ventas');
 
-  const mp = data.mediosPago || {};
-  sheetVentas.appendRow([
-    id,
-    data.ticket,
-    data.fecha,
-    data.hora,
-    data.total,
-    data.costoTotal || 0,
-    data.margen || 0,
-    data.total > 0 ? ((data.margen || 0) / data.total * 100).toFixed(2) : 0,
-    data.medioPago,
-    mp.efectivo || 0,
-    mp.mercadoPago || 0,
-    mp.transferencia || 0,
-    mp.cuentaDni || 0,
-    mp.tarjeta || 0,
-    mp.otro || 0,
-    data.efectivoRecibido || 0,
-    data.vuelto || 0,
-    data.estado || 'OK',
-    data.nota || ''
-  ]);
+    // ── ID seguro: dentro del lock, lastRow es confiable ──
+    const lastRow = sheetVentas.getLastRow();
+    const id = lastRow; // fila - 1 encabezado
 
-  // ── Detalle_Ventas ──
-  const sheetDetalle = ss.getSheetByName('Detalle_Ventas');
-  data.items.forEach(item => {
-    sheetDetalle.appendRow([
-      data.ticket,
+    // ── TICKET generado en el SERVIDOR (único global, ignora el del cliente) ──
+    const ticket = generarTicketServidor(ss);
+
+    const mp = data.mediosPago || {};
+    sheetVentas.appendRow([
+      id,
+      ticket,
       data.fecha,
       data.hora,
-      item.producto,
-      item.cantidad,
-      item.unidad,
-      item.precioUnit,
-      item.subtotal,
-      item.costoUnit || 0,
-      item.costoTotal || 0,
-      item.margen || 0,
-      item.categoria || ''
+      data.total,
+      data.costoTotal || 0,
+      data.margen || 0,
+      data.total > 0 ? ((data.margen || 0) / data.total * 100).toFixed(2) : 0,
+      data.medioPago,
+      mp.efectivo || 0,
+      mp.mercadoPago || 0,
+      mp.transferencia || 0,
+      mp.cuentaDni || 0,
+      mp.tarjeta || 0,
+      mp.otro || 0,
+      data.efectivoRecibido || 0,
+      data.vuelto || 0,
+      data.estado || 'OK',
+      data.nota || ''
     ]);
+
+    // ── Detalle_Ventas ──
+    const sheetDetalle = ss.getSheetByName('Detalle_Ventas');
+    data.items.forEach(item => {
+      sheetDetalle.appendRow([
+        ticket,
+        data.fecha,
+        data.hora,
+        item.producto,
+        item.cantidad,
+        item.unidad,
+        item.precioUnit,
+        item.subtotal,
+        item.costoUnit || 0,
+        item.costoTotal || 0,
+        item.margen || 0,
+        item.categoria || ''
+      ]);
+    });
+
+    // Actualizar resumen del día
+    actualizarResumenDia(ss, data.fecha);
+
+    // Descontar stock por cada ítem vendido
+    data.items.forEach(item => {
+      updateStock(ss, item.producto, -item.cantidad);
+    });
+
+    return { ticket: ticket, id: id };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Genera el próximo ticket único del día leyendo BD_Ventas.
+ * Se llama SIEMPRE dentro de un lock para garantizar unicidad.
+ */
+function generarTicketServidor(ss) {
+  const fecha = Utilities.formatDate(new Date(), 'America/Argentina/Buenos_Aires', 'yyyyMMdd');
+  const sheet = ss.getSheetByName('BD_Ventas');
+  const rows = sheet.getDataRange().getValues();
+  let max = 0;
+  rows.slice(1).forEach(row => {
+    const t = String(row[1]); // columna Ticket
+    if (t.startsWith(fecha)) {
+      const num = parseInt(t.split('-')[1]) || 0;
+      if (num > max) max = num;
+    }
   });
-
-  // Actualizar resumen del día
-  actualizarResumenDia(ss, data.fecha);
-
-  // Descontar stock por cada ítem vendido
-  data.items.forEach(item => {
-    updateStock(ss, item.producto, -item.cantidad);
-  });
-
-  return { ticket: data.ticket, id };
+  return `${fecha}-${String(max + 1).padStart(4, '0')}`;
 }
 
 /**
@@ -211,41 +256,76 @@ function guardarVenta(data) {
  * }
  */
 function guardarCompra(data) {
-  const ss = SpreadsheetApp.openById(SHEET_ID);
-  ss.getSheetByName('Compras').appendRow([
-    data.fecha,
-    data.proveedor,
-    data.producto,
-    data.categoria || '',
-    data.cantidad,
-    data.unidad,
-    data.costoTotal,
-    data.costoUnit,
-    data.medioPago,
-    data.estadoPago || 'Pagado',
-    data.observacion || ''
-  ]);
-  // Sumar stock por compra
-  updateStock(ss, data.producto, data.cantidad);
-  return { ok: true };
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    ss.getSheetByName('Compras').appendRow([
+      data.fecha,
+      data.proveedor,
+      data.producto,
+      data.categoria || '',
+      data.cantidad,
+      data.unidad,
+      data.costoTotal,
+      data.costoUnit,
+      data.medioPago,
+      data.estadoPago || 'Pagado',
+      data.observacion || ''
+    ]);
+    // Sumar stock por compra
+    updateStock(ss, data.producto, data.cantidad);
+    // Actualizar el costo del producto con el costo unitario de esta compra
+    // (costo de reposición — mantiene el margen calculado correcto)
+    if (data.costoUnit && data.costoUnit > 0) {
+      actualizarCostoProducto(ss, data.producto, data.costoUnit);
+    }
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Actualiza el campo Costo de un producto en la hoja Productos.
+ */
+function actualizarCostoProducto(ss, nombreProducto, nuevoCosto) {
+  const sheet = ss.getSheetByName('Productos');
+  const rows = sheet.getDataRange().getValues();
+  const headers = rows[0];
+  const colNombre = headers.indexOf('Nombre');
+  const colCosto = headers.indexOf('Costo');
+  if (colNombre < 0 || colCosto < 0) return;
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][colNombre]).trim() === String(nombreProducto).trim()) {
+      sheet.getRange(i + 1, colCosto + 1).setValue(nuevoCosto);
+      return;
+    }
+  }
 }
 
 /**
  * data = { fecha, producto, tipo, cantidad, motivo, responsable }
  */
 function guardarAjuste(data) {
-  const ss = SpreadsheetApp.openById(SHEET_ID);
-  ss.getSheetByName('Ajustes_Stock').appendRow([
-    data.fecha,
-    data.producto,
-    data.tipo,
-    data.cantidad,
-    data.motivo || '',
-    data.responsable || ''
-  ]);
-  // cantidad ya viene con signo correcto (negativo para Salida/Merma)
-  updateStock(ss, data.producto, data.cantidad);
-  return { ok: true };
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    ss.getSheetByName('Ajustes_Stock').appendRow([
+      data.fecha,
+      data.producto,
+      data.tipo,
+      data.cantidad,
+      data.motivo || '',
+      data.responsable || ''
+    ]);
+    // cantidad ya viene con signo correcto (negativo para Salida/Merma)
+    updateStock(ss, data.producto, data.cantidad);
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /**
@@ -253,18 +333,35 @@ function guardarAjuste(data) {
  *           precioOferta, cantMinOferta, fechaFinOferta }
  */
 function guardarProducto(data) {
-  getSheet('Productos').appendRow([
-    data.nombre,
-    data.categoria,
-    data.unidad,
-    data.precio,
-    data.costo || 0,
-    data.activo !== false ? 'SI' : 'NO',
-    data.precioOferta || '',
-    data.cantMinOferta || '',
-    data.fechaFinOferta || ''
-  ]);
-  return { ok: true };
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    ss.getSheetByName('Productos').appendRow([
+      data.nombre,
+      data.categoria,
+      data.unidad,
+      data.precio,
+      data.costo || 0,
+      data.activo !== false ? 'SI' : 'NO',
+      data.precioOferta || '',
+      data.cantMinOferta || '',
+      data.fechaFinOferta || ''
+    ]);
+    // Agregar al stock automáticamente (en 0) si no existe
+    const stockSheet = ss.getSheetByName('Stock_Actual');
+    if (stockSheet) {
+      const existe = stockSheet.getDataRange().getValues()
+        .slice(1).some(r => String(r[0]).trim() === String(data.nombre).trim());
+      if (!existe) {
+        const ahora = Utilities.formatDate(new Date(), 'America/Argentina/Buenos_Aires', 'yyyy-MM-dd HH:mm');
+        stockSheet.appendRow([data.nombre, 0, ahora]);
+      }
+    }
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 /**

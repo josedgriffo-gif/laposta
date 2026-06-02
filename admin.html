@@ -272,7 +272,7 @@
 
 <div id="app">
   <div id="header">
-    <h1>⚙ Panel Admin <span id="version-badge">v1.6</span></h1>
+    <h1>⚙ Panel Admin <span id="version-badge">v1.7</span></h1>
     <button id="btn-volver" onclick="window.location.href='index.html'">← Volver a caja</button>
   </div>
 
@@ -1159,14 +1159,14 @@ async function guardarConfig() {
     return;
   }
 
-  // Actualiza directo en el Sheet via la hoja Configuracion
   try {
-    // Usamos un ajuste temporal — en próxima versión agregar endpoint dedicado
-    const sheet = { PIN_Admin: pinAdmin, PIN_Dueño: pinDueno, Meta_Diaria: meta };
-    // Por ahora actualiza localmente
-    config = sheet;
+    await apiPost('guardarConfig', {
+      pinAdmin: pinAdmin,
+      pinDueno: pinDueno,
+      metaDiaria: meta
+    });
+    config = { PIN_Admin: pinAdmin, PIN_Dueño: pinDueno, Meta_Diaria: meta };
     mostrarMsg('msg-config-ok', null);
-    // TODO: agregar endpoint saveConfig en backend para persistir en Sheet
   } catch(e) {
     mostrarMsg('msg-config-error', 'Error: ' + e.message);
   }
