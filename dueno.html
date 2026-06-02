@@ -165,11 +165,58 @@
   @keyframes spin { to { transform: rotate(360deg); } }
 
   #sin-datos { text-align: center; color: #bbb; padding: 40px 20px; font-size: 1rem; display: none; }
+
+  /* ── PIN ───────────────────────────────────────────────────────────────── */
+  #pantalla-pin {
+    position: fixed; inset: 0;
+    background: #1b5e20;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    z-index: 998;
+  }
+  #pantalla-pin h2 { font-size: 1.4rem; }
+  #pin-dots { display: flex; gap: 14px; }
+  .pin-dot { width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.3); border: 2px solid rgba(255,255,255,0.5); transition: background 0.1s; }
+  .pin-dot.lleno { background: white; }
+  #pin-teclado { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; width: 260px; }
+  .pin-key { background: rgba(255,255,255,0.15); color: white; border-radius: 12px; padding: 20px; font-size: 1.5rem; font-weight: 700; text-align: center; cursor: pointer; border: none; }
+  .pin-key:active { background: rgba(255,255,255,0.3); }
+  #pin-error { color: #ff8a80; font-size: 0.9rem; min-height: 20px; }
 </style>
 </head>
 <body>
 
-<div id="loading">
+<!-- Pantalla PIN -->
+<div id="pantalla-pin">
+  <h2>🔐 Vista Dueño</h2>
+  <div id="pin-dots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div id="pin-error"></div>
+  <div id="pin-teclado">
+    <button class="pin-key" onclick="pinKey('1')">1</button>
+    <button class="pin-key" onclick="pinKey('2')">2</button>
+    <button class="pin-key" onclick="pinKey('3')">3</button>
+    <button class="pin-key" onclick="pinKey('4')">4</button>
+    <button class="pin-key" onclick="pinKey('5')">5</button>
+    <button class="pin-key" onclick="pinKey('6')">6</button>
+    <button class="pin-key" onclick="pinKey('7')">7</button>
+    <button class="pin-key" onclick="pinKey('8')">8</button>
+    <button class="pin-key" onclick="pinKey('9')">9</button>
+    <button class="pin-key" onclick="pinKey('⌫')">⌫</button>
+    <button class="pin-key" onclick="pinKey('0')">0</button>
+    <button class="pin-key" onclick="pinKey('OK')" style="background:rgba(255,255,255,0.3)">OK</button>
+  </div>
+</div>
+
+<div id="loading" style="display:none">
   <div class="spinner"></div>
   <span>Cargando datos...</span>
 </div>
@@ -233,6 +280,58 @@
 
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbzYU4oUPCb7jNORognxXS-gVDVk8SBqU6H7Kp24eWxMtZD9pZ5wjMGpXK35aOTjLHkb0Q/exec';
+
+// ── PIN ────────────────────────────────────────────────────────────────────
+let pinBuffer = '';
+let pinConfig = null;
+
+async function initPin() {
+  try {
+    const res = await fetch(`${API_URL}?action=getConfig`);
+    const json = await res.json();
+    pinConfig = json.data;
+  } catch(e) {
+    // Si no se puede cargar config, usar PIN por defecto
+    pinConfig = { PIN_Dueño: '0000', PIN_Admin: '1234' };
+  }
+}
+
+function pinKey(val) {
+  if (val === '⌫') {
+    pinBuffer = pinBuffer.slice(0, -1);
+  } else if (val === 'OK') {
+    verificarPin();
+    return;
+  } else if (pinBuffer.length < 4) {
+    pinBuffer += val;
+  }
+  actualizarDots();
+  if (pinBuffer.length === 4) verificarPin();
+}
+
+function actualizarDots() {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById(`d${i}`).classList.toggle('lleno', i < pinBuffer.length);
+  }
+}
+
+function verificarPin() {
+  const pinDueno = String(pinConfig?.PIN_Dueño || '0000').padStart(4, '0');
+  const pinAdmin = String(pinConfig?.PIN_Admin || '1234').padStart(4, '0');
+  if (pinBuffer === pinDueno || pinBuffer === pinAdmin) {
+    document.getElementById('pantalla-pin').style.display = 'none';
+    document.getElementById('loading').style.display = 'flex';
+    cargarDatos();
+  } else {
+    document.getElementById('pin-error').textContent = 'PIN incorrecto';
+    pinBuffer = '';
+    actualizarDots();
+    setTimeout(() => document.getElementById('pin-error').textContent = '', 1500);
+  }
+}
+
+// Iniciar cargando el PIN antes de mostrar nada
+initPin();
 
 async function apiGet(action) {
   const res = await fetch(`${API_URL}?action=${action}`);

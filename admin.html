@@ -982,11 +982,15 @@ async function guardarAjuste() {
     return;
   }
 
+  const tipo = document.getElementById('ajuste-tipo').value;
+  // Salida y Merma se guardan como negativo
+  const cantFinal = (tipo === 'Salida' || tipo === 'Merma') ? -Math.abs(cantidad) : Math.abs(cantidad);
+
   const data = {
     fecha: document.getElementById('ajuste-fecha').value,
     producto,
-    tipo: document.getElementById('ajuste-tipo').value,
-    cantidad,
+    tipo,
+    cantidad: cantFinal,
     motivo,
     responsable: document.getElementById('ajuste-responsable').value.trim()
   };
