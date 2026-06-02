@@ -371,12 +371,16 @@
             <option value="OFERTA">Con oferta</option>
           </select>
         </div>
-        <div id="prod-count" style="font-size:0.8rem;color:#999;margin-bottom:8px"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div id="prod-count" style="font-size:0.8rem;color:#999"></div>
+          <button class="btn-secondary btn-sm" onclick="inicializarStock()">⚡ Inicializar stock</button>
+        </div>
 
         <div class="tabla-scroll">
           <table id="tabla-productos">
             <thead>
               <tr>
+                <th class="th-sort" data-col="stock" style="cursor:pointer">Stock <span id="sort-stock"></span></th>
                 <th class="th-sort" data-col="nombre" style="cursor:pointer">Nombre <span id="sort-nombre"></span></th>
                 <th class="th-sort" data-col="categoria" style="cursor:pointer">Categoría <span id="sort-categoria"></span></th>
                 <th class="th-sort" data-col="unidad" style="cursor:pointer">Unidad <span id="sort-unidad"></span></th>
@@ -647,6 +651,7 @@
 const API_URL = 'https://script.google.com/macros/s/AKfycbzYU4oUPCb7jNORognxXS-gVDVk8SBqU6H7Kp24eWxMtZD9pZ5wjMGpXK35aOTjLHkb0Q/exec';
 
 let productos = [];
+let stockMap = {};
 let compras = [];
 let ajustes = [];
 let config = {};
@@ -657,7 +662,7 @@ let sortAsc = true;
 async function init() {
   setFechasHoy();
   try {
-    await Promise.all([cargarProductos(), cargarCompras(), cargarAjustes(), cargarConfig()]);
+    await Promise.all([cargarProductos(), cargarStock(), cargarCompras(), cargarAjustes(), cargarConfig()]);
   } catch(e) { console.error(e); }
   document.getElementById('loading').style.display = 'none';
 }
@@ -692,6 +697,15 @@ async function apiPost(action, data) {
 async function cargarProductos() {
   productos = await apiGet('getProductos');
   renderTablaProductos();
+}
+
+async function cargarStock() {
+  try {
+    const rows = await apiGet('getStock');
+    stockMap = {};
+    rows.forEach(r => { stockMap[r['Producto']] = Number(r['Stock_Actual']) || 0; });
+    renderTablaProductos();
+  } catch(e) { console.log('Stock no disponible:', e.message); }
 }
 
 async function cargarCompras() {
@@ -752,7 +766,8 @@ function renderTablaProductos() {
   // Ordenamiento
   lista.sort((a, b) => {
     let va, vb;
-    if (sortCol === 'precio')        { va = Number(a['Precio'])||0;  vb = Number(b['Precio'])||0; }
+    if (sortCol === 'stock')         { va = stockMap[a['Nombre']]??Infinity; vb = stockMap[b['Nombre']]??Infinity; }
+    else if (sortCol === 'precio')   { va = Number(a['Precio'])||0;  vb = Number(b['Precio'])||0; }
     else if (sortCol === 'costo')   { va = Number(a['Costo'])||0;   vb = Number(b['Costo'])||0; }
     else if (sortCol === 'categoria'){ va = a['Categoría']||'';     vb = b['Categoría']||''; }
     else if (sortCol === 'unidad')  { va = a['Unidad']||'';         vb = b['Unidad']||''; }
@@ -765,7 +780,7 @@ function renderTablaProductos() {
   });
 
   // Indicadores de orden en headers
-  ['nombre','categoria','unidad','precio','costo','activo','oferta'].forEach(col => {
+  ['stock','nombre','categoria','unidad','precio','costo','activo','oferta'].forEach(col => {
     const el = document.getElementById(`sort-${col}`);
     if (el) el.textContent = sortCol === col ? (sortAsc ? ' ▲' : ' ▼') : '';
   });
@@ -782,7 +797,11 @@ function renderTablaProductos() {
     const idx = p._idx;
     const activo = p['Activo'] === 'SI';
     const tieneOferta = p['Precio_Oferta'] && p['Cantidad_Min_Oferta'];
+    const stock = stockMap[p['Nombre']];
+    const stockStr = stock !== undefined ? stock : '—';
+    const stockColor = stock === undefined ? '#bbb' : stock < 0 ? '#c62828' : stock === 0 ? '#e65100' : '#2e7d32';
     return `<tr>
+      <td style="font-weight:700;color:${stockColor};text-align:center">${stockStr}</td>
       <td><strong>${p['Nombre']}</strong></td>
       <td>${p['Categoría'] || '-'}</td>
       <td>${p['Unidad'] || '-'}</td>
@@ -1054,6 +1073,17 @@ async function cargarResumenDia() {
     `;
   } catch(e) {
     cont.innerHTML = `<div style="color:#c62828;padding:10px">Error al cargar resumen: ${e.message}</div>`;
+  }
+}
+
+async function inicializarStock() {
+  if (!confirm('Esto crea la hoja Stock_Actual con todos los productos en stock 0 (solo los que no tengan fila todavía). ¿Continuar?')) return;
+  try {
+    const res = await apiPost('initStock', {});
+    alert(`Stock inicializado: ${res.inicializados} productos nuevos, ${res.yaExistian} ya existían.`);
+    await cargarStock();
+  } catch(e) {
+    alert('Error: ' + e.message);
   }
 }
 

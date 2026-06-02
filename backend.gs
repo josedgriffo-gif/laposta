@@ -22,6 +22,7 @@ function doGet(e) {
   try {
     switch (action) {
       case 'getProductos':    return ok(getProductos());
+      case 'getStock':        return ok(getStock());
       case 'getConfig':       return ok(getConfig());
       case 'getVentasHoy':    return ok(getVentasHoy());
       case 'getResumenHoy':   return ok(getResumenHoy());
@@ -48,6 +49,7 @@ function doPost(e) {
       case 'guardarProducto':      return ok(guardarProducto(body.data));
       case 'updateProducto':       return ok(updateProducto(body.data));
       case 'bulkImportProductos':  return ok(bulkImportProductos(body.data));
+      case 'initStock':            return ok(initStock());
       case 'cerrarDia':          return ok(cerrarDia(body.data));
       case 'recalcularResumen':  return ok(recalcularResumen(body.data));
       default:                return error('Acción desconocida: ' + action);
@@ -194,6 +196,11 @@ function guardarVenta(data) {
   // Actualizar resumen del día
   actualizarResumenDia(ss, data.fecha);
 
+  // Descontar stock por cada ítem vendido
+  data.items.forEach(item => {
+    updateStock(ss, item.producto, -item.cantidad);
+  });
+
   return { ticket: data.ticket, id };
 }
 
@@ -204,7 +211,8 @@ function guardarVenta(data) {
  * }
  */
 function guardarCompra(data) {
-  getSheet('Compras').appendRow([
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  ss.getSheetByName('Compras').appendRow([
     data.fecha,
     data.proveedor,
     data.producto,
@@ -217,6 +225,8 @@ function guardarCompra(data) {
     data.estadoPago || 'Pagado',
     data.observacion || ''
   ]);
+  // Sumar stock por compra
+  updateStock(ss, data.producto, data.cantidad);
   return { ok: true };
 }
 
@@ -224,7 +234,8 @@ function guardarCompra(data) {
  * data = { fecha, producto, tipo, cantidad, motivo, responsable }
  */
 function guardarAjuste(data) {
-  getSheet('Ajustes_Stock').appendRow([
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  ss.getSheetByName('Ajustes_Stock').appendRow([
     data.fecha,
     data.producto,
     data.tipo,
@@ -232,6 +243,8 @@ function guardarAjuste(data) {
     data.motivo || '',
     data.responsable || ''
   ]);
+  // cantidad ya viene con signo correcto (negativo para Salida/Merma)
+  updateStock(ss, data.producto, data.cantidad);
   return { ok: true };
 }
 
@@ -398,6 +411,65 @@ function generarTicket() {
   });
 
   return `${fecha}-${String(max + 1).padStart(4, '0')}`;
+}
+
+// ── Stock ─────────────────────────────────────────────────────────────────
+
+function getStock() {
+  return sheetToObjects(getSheet('Stock_Actual'));
+}
+
+/**
+ * Actualiza el stock de un producto sumando delta (positivo o negativo).
+ * Si el producto no existe en Stock_Actual, lo crea.
+ */
+function updateStock(ss, producto, delta) {
+  const sheet = ss.getSheetByName('Stock_Actual');
+  if (!sheet) return;
+  const rows = sheet.getDataRange().getValues();
+  const ahora = Utilities.formatDate(new Date(), 'America/Argentina/Buenos_Aires', 'yyyy-MM-dd HH:mm');
+
+  for (let i = 1; i < rows.length; i++) {
+    if (String(rows[i][0]).trim() === String(producto).trim()) {
+      const stockActual = Number(rows[i][1]) || 0;
+      sheet.getRange(i + 1, 2).setValue(stockActual + delta);
+      sheet.getRange(i + 1, 3).setValue(ahora);
+      return;
+    }
+  }
+  // No existe — crear fila nueva
+  sheet.appendRow([producto, delta, ahora]);
+}
+
+/**
+ * Inicializa la hoja Stock_Actual con todos los productos en stock 0
+ * (solo los que no tengan fila todavía).
+ */
+function initStock() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  let sheet = ss.getSheetByName('Stock_Actual');
+
+  if (!sheet) {
+    sheet = ss.insertSheet('Stock_Actual');
+    sheet.getRange(1, 1, 1, 3).setValues([['Producto', 'Stock_Actual', 'Ultima_Actualizacion']]);
+    sheet.getRange(1, 1, 1, 3).setFontWeight('bold').setBackground('#d9d9d9');
+    sheet.setFrozenRows(1);
+  }
+
+  const productos = sheetToObjects(ss.getSheetByName('Productos'));
+  const rows = sheet.getDataRange().getValues();
+  const existentes = rows.slice(1).map(r => String(r[0]).trim());
+  const ahora = Utilities.formatDate(new Date(), 'America/Argentina/Buenos_Aires', 'yyyy-MM-dd HH:mm');
+
+  const nuevos = productos
+    .filter(p => p['Nombre'] && !existentes.includes(String(p['Nombre']).trim()))
+    .map(p => [p['Nombre'], 0, ahora]);
+
+  if (nuevos.length > 0) {
+    sheet.getRange(sheet.getLastRow() + 1, 1, nuevos.length, 3).setValues(nuevos);
+  }
+
+  return { inicializados: nuevos.length, yaExistian: existentes.length };
 }
 
 /**
