@@ -272,7 +272,7 @@
 
 <div id="app">
   <div id="header">
-    <h1>⚙ Panel Admin <span id="version-badge">v1.9</span></h1>
+    <h1>⚙ Panel Admin <span id="version-badge">v2.0</span></h1>
     <button id="btn-volver" onclick="window.location.href='index.html'">← Volver a caja</button>
   </div>
 
@@ -556,6 +556,25 @@
 
     <!-- ── TAB: CIERRE DE CAJA ────────────────────────────────────────── -->
     <div id="tab-cierre" style="display:none">
+
+      <!-- Apertura: fondo de caja inicial -->
+      <div class="card">
+        <h2>Apertura — Fondo de caja inicial</h2>
+        <div class="form-grid">
+          <div class="field">
+            <label>Efectivo con el que arranca el día</label>
+            <input type="number" id="fondo-inicial" placeholder="0" min="0">
+          </div>
+          <div class="field">
+            <label>Responsable</label>
+            <input type="text" id="fondo-responsable" placeholder="Quién abre la caja">
+          </div>
+        </div>
+        <div id="fondo-info" style="font-size:0.85rem;color:#888;margin:8px 0"></div>
+        <div id="msg-fondo-ok" class="msg-ok">Fondo de caja guardado</div>
+        <button class="btn-primary" onclick="guardarFondo()" style="margin-top:8px">Guardar fondo inicial</button>
+      </div>
+
       <div class="card">
         <h2>Resumen del día</h2>
         <div id="resumen-dia-contenido">
@@ -567,7 +586,7 @@
         <h2>Cierre de caja</h2>
         <div class="form-grid">
           <div class="field">
-            <label>Efectivo real en caja</label>
+            <label>Efectivo real contado en caja</label>
             <input type="number" id="efectivo-real" placeholder="0" min="0">
           </div>
         </div>
@@ -603,6 +622,21 @@
         <div id="msg-config-ok" class="msg-ok">Configuración guardada</div>
         <div id="msg-config-error" class="msg-error"></div>
         <button class="btn-primary" onclick="guardarConfig()" style="margin-top:8px">Guardar configuración</button>
+      </div>
+
+      <!-- Zona peligrosa: reset de datos -->
+      <div class="card" style="border:2px solid #ef9a9a">
+        <h2 style="color:#c62828;border-color:#ffcdd2">⚠️ Reiniciar datos de prueba</h2>
+        <p style="font-size:0.9rem;color:#555;line-height:1.5;margin-bottom:12px">
+          Borra <strong>todas las ventas, compras y ajustes</strong> y pone el stock en cero.
+          <br><strong>Conserva</strong> los productos y la configuración (PINs, meta).
+          <br>Usalo cuando termines de probar, para arrancar de cero en producción.
+        </p>
+        <div id="msg-reset-ok" class="msg-ok">Datos reiniciados correctamente</div>
+        <div id="msg-reset-error" class="msg-error"></div>
+        <button onclick="resetDatos()" style="background:#c62828;color:white;border-radius:8px;padding:12px 20px;font-size:1rem;font-weight:700;width:100%;margin-top:8px">
+          🗑 Borrar datos de prueba
+        </button>
       </div>
     </div>
 
@@ -1059,7 +1093,21 @@ async function guardarAjuste() {
 async function cargarResumenDia() {
   const cont = document.getElementById('resumen-dia-contenido');
   try {
-    const res = await apiGet('getResumenHoy');
+    // Cargar resumen + fondo de caja del día
+    const hoy = fechaHoyStr();
+    const [res, fondo] = await Promise.all([
+      apiGet('getResumenHoy'),
+      apiGet('getFondoCaja&fecha=' + hoy)
+    ]);
+
+    // Mostrar el fondo guardado en el formulario de apertura
+    const fondoMonto = Number(fondo?.monto) || 0;
+    if (fondoMonto > 0) {
+      document.getElementById('fondo-inicial').value = fondoMonto;
+      document.getElementById('fondo-info').textContent =
+        `Fondo cargado hoy: ${formatPesos(fondoMonto)}${fondo.responsable ? ' por ' + fondo.responsable : ''}${fondo.hora ? ' a las ' + fondo.hora : ''}`;
+    }
+
     if (!res) {
       cont.innerHTML = '<div style="color:#999;text-align:center;padding:20px">Sin ventas registradas hoy</div>';
       return;
@@ -1069,17 +1117,18 @@ async function cargarResumenDia() {
     const total = Number(res['Total_Ventas']) || 0;
     const pct = Math.min(100, (total / meta * 100)).toFixed(1);
 
-    const efectivoTeorico = Number(res['Efectivo']) || 0;
-    const efectivoReal = parseFloat(document.getElementById('efectivo-real')?.value) || 0;
-    const diferencia = efectivoReal - efectivoTeorico;
+    const ventasEfectivo = Number(res['Efectivo']) || 0;
+    // Efectivo esperado en caja = fondo inicial + ventas en efectivo
+    const efectivoEsperado = fondoMonto + ventasEfectivo;
 
     document.getElementById('efectivo-real').oninput = () => {
       const real = parseFloat(document.getElementById('efectivo-real').value) || 0;
-      const dif = real - efectivoTeorico;
+      const dif = real - efectivoEsperado;
       const div = document.getElementById('diferencia-efectivo');
       div.style.display = 'block';
-      div.style.color = dif >= 0 ? '#2e7d32' : '#c62828';
-      div.textContent = `Diferencia: ${dif >= 0 ? '+' : ''}${formatPesos(dif)} vs. teórico ${formatPesos(efectivoTeorico)}`;
+      div.style.color = Math.abs(dif) < 0.01 ? '#2e7d32' : dif > 0 ? '#e65100' : '#c62828';
+      const etiqueta = Math.abs(dif) < 0.01 ? 'Caja cuadrada ✓' : dif > 0 ? 'Sobra' : 'Falta';
+      div.textContent = `${etiqueta}: ${formatPesos(Math.abs(dif))} — esperado ${formatPesos(efectivoEsperado)} (fondo ${formatPesos(fondoMonto)} + ventas efectivo ${formatPesos(ventasEfectivo)})`;
     };
 
     cont.innerHTML = `
@@ -1094,7 +1143,10 @@ async function cargarResumenDia() {
       <div class="resumen-fila"><span class="label">Margen %</span><span class="valor">${Number(res['Margen_%']||0).toFixed(1)}%</span></div>
       <div class="resumen-fila"><span class="label">Tickets</span><span class="valor">${res['Cant_Tickets']||0}</span></div>
       <hr style="border:none;border-top:1px solid #eee;margin:8px 0">
-      <div class="resumen-fila"><span class="label">Efectivo</span><span class="valor">${formatPesos(res['Efectivo']||0)}</span></div>
+      <div class="resumen-fila"><span class="label">Fondo inicial</span><span class="valor">${formatPesos(fondoMonto)}</span></div>
+      <div class="resumen-fila"><span class="label">Efectivo (ventas)</span><span class="valor">${formatPesos(res['Efectivo']||0)}</span></div>
+      <div class="resumen-fila"><span class="label" style="font-weight:700">Efectivo esperado en caja</span><span class="valor verde">${formatPesos(efectivoEsperado)}</span></div>
+      <hr style="border:none;border-top:1px solid #eee;margin:8px 0">
       <div class="resumen-fila"><span class="label">Mercado Pago</span><span class="valor">${formatPesos(res['Mercado_Pago']||0)}</span></div>
       <div class="resumen-fila"><span class="label">Transferencia</span><span class="valor">${formatPesos(res['Transferencia']||0)}</span></div>
       <div class="resumen-fila"><span class="label">Cuenta DNI</span><span class="valor">${formatPesos(res['Cuenta_DNI']||0)}</span></div>
@@ -1103,6 +1155,45 @@ async function cargarResumenDia() {
     `;
   } catch(e) {
     cont.innerHTML = `<div style="color:#c62828;padding:10px">Error al cargar resumen: ${e.message}</div>`;
+  }
+}
+
+function fechaHoyStr() {
+  return new Date().toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
+    .split('/').reverse().map(p => p.padStart(2,'0')).join('-');
+}
+
+async function guardarFondo() {
+  const monto = parseFloat(document.getElementById('fondo-inicial').value) || 0;
+  const responsable = document.getElementById('fondo-responsable').value.trim();
+  try {
+    await apiPost('setFondoCaja', { fecha: fechaHoyStr(), monto, responsable });
+    mostrarMsg('msg-fondo-ok', null);
+    await cargarResumenDia();
+  } catch(e) {
+    alert('Error al guardar el fondo: ' + e.message);
+  }
+}
+
+async function resetDatos() {
+  // Doble confirmación + PIN admin
+  if (!confirm('⚠️ ATENCIÓN: esto borra TODAS las ventas, compras y ajustes, y pone el stock en cero.\n\nLos productos y la configuración se conservan.\n\n¿Estás seguro?')) return;
+  if (!confirm('Esta acción NO se puede deshacer.\n\n¿Confirmás definitivamente que querés borrar todos los datos de prueba?')) return;
+
+  const pin = prompt('Ingresá el PIN de administrador para confirmar:');
+  if (!pin) return;
+
+  try {
+    const res = await apiPost('resetDatos', { pin: pin });
+    mostrarMsg('msg-reset-ok', null);
+    alert('✓ ' + (res.mensaje || 'Datos reiniciados.'));
+    // Recargar todo
+    await Promise.all([cargarProductos(), cargarStock(), cargarCompras(), cargarAjustes()]);
+  } catch(e) {
+    const el = document.getElementById('msg-reset-error');
+    el.textContent = e.message;
+    el.classList.add('visible');
+    setTimeout(() => el.classList.remove('visible'), 4000);
   }
 }
 

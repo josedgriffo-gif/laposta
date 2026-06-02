@@ -455,7 +455,7 @@
 
   <!-- Header -->
   <div id="header">
-    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v1.9</span></h1>
+    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v2.0</span></h1>
     <div id="header-right">
       <span id="offline-badge">SIN CONEXIÓN</span>
       <button id="btn-admin">Admin</button>
@@ -1074,6 +1074,7 @@ function construirDatosVenta() {
   const fecha = formatFecha(ahora);
   const hora  = formatHora(ahora);
   const ticket = generarTicketLocal(fecha);
+  const uuid = generarUUID(); // identificador único para evitar duplicados
   const total  = calcularTotal();
   const costoTotal = carrito.reduce((s, i) => s + (i.costo * i.cantidad), 0);
   const margen = total - costoTotal;
@@ -1103,7 +1104,7 @@ function construirDatosVenta() {
   }
 
   return {
-    ticket, fecha, hora, total, costoTotal, margen,
+    ticket, uuid, fecha, hora, total, costoTotal, margen,
     medioPago: medioSeleccionado,
     mediosPago: mp,
     efectivoRecibido, vuelto,
@@ -1195,6 +1196,16 @@ document.getElementById('btn-pin-cancelar').onclick = () => {
   pinBuffer = '';
 };
 
+// ── UUID único por venta (idempotencia) ─────────────────────────────────────
+function generarUUID() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  // Fallback para navegadores viejos
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
+
 // ── Ticket local ───────────────────────────────────────────────────────────
 function generarTicketLocal(fecha) {
   const fechaKey = fecha.replace(/-/g, '');
@@ -1221,20 +1232,29 @@ function monitorearConexion() {
   actualizar();
 }
 
+let sincronizando = false; // candado: evita que dos sync corran a la vez
+
 async function sincronizarPendientes() {
+  if (sincronizando) return;
   if (!navigator.onLine || ventasPendientes.length === 0) return;
-  const pendientes = [...ventasPendientes];
-  ventasPendientes = [];
-  localStorage.setItem('ventas_pendientes', '[]');
-  for (const venta of pendientes) {
-    try {
-      await apiPost('guardarVenta', venta);
-    } catch(e) {
-      ventasPendientes.push(venta);
+  sincronizando = true;
+  try {
+    const pendientes = [...ventasPendientes];
+    ventasPendientes = [];
+    localStorage.setItem('ventas_pendientes', '[]');
+    for (const venta of pendientes) {
+      try {
+        // El uuid garantiza que aunque se reintente, el backend no la duplica
+        await apiPost('guardarVenta', venta);
+      } catch(e) {
+        ventasPendientes.push(venta);
+      }
     }
-  }
-  if (ventasPendientes.length > 0) {
-    localStorage.setItem('ventas_pendientes', JSON.stringify(ventasPendientes));
+    if (ventasPendientes.length > 0) {
+      localStorage.setItem('ventas_pendientes', JSON.stringify(ventasPendientes));
+    }
+  } finally {
+    sincronizando = false;
   }
 }
 

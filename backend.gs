@@ -26,6 +26,7 @@ function doGet(e) {
       case 'getConfig':       return ok(getConfig());
       case 'getVentasHoy':    return ok(getVentasHoy());
       case 'getResumenHoy':   return ok(getResumenHoy());
+      case 'getFondoCaja':    return ok(getFondoCaja(e.parameter.fecha));
       case 'getCompras':      return ok(getCompras());
       case 'getAjustes':      return ok(getAjustes());
       default:                return ok({ status: 'La Posta API activa' });
@@ -53,6 +54,8 @@ function doPost(e) {
       case 'cerrarDia':          return ok(cerrarDia(body.data));
       case 'recalcularResumen':  return ok(recalcularResumen(body.data));
       case 'guardarConfig':      return ok(guardarConfig(body.data));
+      case 'setFondoCaja':       return ok(setFondoCaja(body.data));
+      case 'resetDatos':         return ok(resetDatos(body.data));
       default:                return error('Acción desconocida: ' + action);
     }
   } catch (err) {
@@ -164,6 +167,14 @@ function guardarVenta(data) {
   lock.waitLock(30000); // espera hasta 30s por el turno
 
   try {
+    // ── IDEMPOTENCIA: si esta venta (uuid) ya se procesó, devolver el mismo
+    //    resultado sin volver a guardar. Evita duplicados por reintento. ──
+    const props = PropertiesService.getScriptProperties();
+    if (data.uuid) {
+      const prev = props.getProperty('v_' + data.uuid);
+      if (prev) return JSON.parse(prev);
+    }
+
     const ss = SpreadsheetApp.openById(SHEET_ID);
     const sheetVentas = ss.getSheetByName('BD_Ventas');
 
@@ -224,7 +235,10 @@ function guardarVenta(data) {
       updateStock(ss, item.producto, -item.cantidad);
     });
 
-    return { ticket: ticket, id: id };
+    const resultado = { ticket: ticket, id: id };
+    // Registrar uuid procesado para idempotencia
+    if (data.uuid) props.setProperty('v_' + data.uuid, JSON.stringify(resultado));
+    return resultado;
   } finally {
     lock.releaseLock();
   }
@@ -594,6 +608,78 @@ function bulkImportProductos(data) {
     sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, 9).setValues(rows);
   }
   return { importados: rows.length };
+}
+
+// ── Fondo de caja ───────────────────────────────────────────────────────────
+
+/**
+ * Guarda el fondo de caja inicial de un día.
+ * data = { fecha, monto, responsable }
+ */
+function setFondoCaja(data) {
+  const props = PropertiesService.getScriptProperties();
+  const fecha = data.fecha || fechaHoy();
+  props.setProperty('fondo_' + fecha, JSON.stringify({
+    monto: Number(data.monto) || 0,
+    responsable: data.responsable || '',
+    hora: Utilities.formatDate(new Date(), 'America/Argentina/Buenos_Aires', 'HH:mm')
+  }));
+  return { ok: true, fondo: Number(data.monto) || 0 };
+}
+
+function getFondoCaja(fecha) {
+  const props = PropertiesService.getScriptProperties();
+  const f = fecha || fechaHoy();
+  const raw = props.getProperty('fondo_' + f);
+  return raw ? JSON.parse(raw) : { monto: 0, responsable: '', hora: '' };
+}
+
+// ── Reset de datos (con PIN admin) ──────────────────────────────────────────
+
+/**
+ * Borra todos los datos transaccionales pero conserva Productos y Configuracion.
+ * Requiere PIN admin correcto.
+ * data = { pin }
+ */
+function resetDatos(data) {
+  const config = getConfig();
+  const pinAdmin = String(config.PIN_Admin).padStart(4, '0');
+  if (String(data.pin).padStart(4, '0') !== pinAdmin) {
+    throw new Error('PIN incorrecto. No se borró nada.');
+  }
+
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+
+  // Hojas a limpiar (deja fila 1 de encabezados)
+  ['BD_Ventas', 'Detalle_Ventas', 'Compras', 'Ajustes_Stock', 'Resumen_Dia'].forEach(nombre => {
+    const sheet = ss.getSheetByName(nombre);
+    if (sheet) {
+      const lastRow = sheet.getLastRow();
+      if (lastRow > 1) sheet.deleteRows(2, lastRow - 1);
+    }
+  });
+
+  // Stock_Actual a 0 (no borra productos, solo pone stock en cero)
+  const stock = ss.getSheetByName('Stock_Actual');
+  if (stock) {
+    const lastRow = stock.getLastRow();
+    if (lastRow > 1) {
+      const ahora = Utilities.formatDate(new Date(), 'America/Argentina/Buenos_Aires', 'yyyy-MM-dd HH:mm');
+      for (let i = 2; i <= lastRow; i++) {
+        stock.getRange(i, 2).setValue(0);
+        stock.getRange(i, 3).setValue(ahora);
+      }
+    }
+  }
+
+  // Limpiar propiedades (fondos de caja y uuids de idempotencia)
+  const props = PropertiesService.getScriptProperties();
+  const all = props.getProperties();
+  Object.keys(all).forEach(k => {
+    if (k.indexOf('fondo_') === 0 || k.indexOf('v_') === 0) props.deleteProperty(k);
+  });
+
+  return { ok: true, mensaje: 'Datos de prueba borrados. Productos y configuración conservados.' };
 }
 
 // Exponer generarTicket como acción GET
