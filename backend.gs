@@ -56,6 +56,7 @@ function doPost(e) {
       case 'guardarConfig':      return ok(guardarConfig(body.data));
       case 'setFondoCaja':       return ok(setFondoCaja(body.data));
       case 'resetDatos':         return ok(resetDatos(body.data));
+      case 'marcarCompraPagada': return ok(marcarCompraPagada(body.data));
       default:                return error('Acción desconocida: ' + action);
     }
   } catch (err) {
@@ -144,7 +145,39 @@ function getResumenHoy() {
 }
 
 function getCompras() {
-  return sheetToObjects(getSheet('Compras'));
+  const sheet = getSheet('Compras');
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+  const headers = data[0];
+  return data.slice(1).map((row, i) => {
+    const obj = { _fila: i + 2 }; // número de fila real en la hoja
+    headers.forEach((h, j) => {
+      const val = row[j];
+      obj[h] = (val instanceof Date && !isNaN(val))
+        ? Utilities.formatDate(val, 'America/Argentina/Buenos_Aires', 'yyyy-MM-dd')
+        : val;
+    });
+    return obj;
+  });
+}
+
+/**
+ * Marca una compra como pagada (cambia Estado_Pago a 'Pagado').
+ * data = { fila }
+ */
+function marcarCompraPagada(data) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const sheet = getSheet('Compras');
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const colEstado = headers.indexOf('Estado_Pago');
+    if (colEstado < 0) throw new Error('No se encontró la columna Estado_Pago');
+    sheet.getRange(data.fila, colEstado + 1).setValue('Pagado');
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 function getAjustes() {

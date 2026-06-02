@@ -272,13 +272,14 @@
 
 <div id="app">
   <div id="header">
-    <h1>⚙ Panel Admin <span id="version-badge">v2.5</span></h1>
+    <h1>⚙ Panel Admin <span id="version-badge">v2.6</span></h1>
     <button id="btn-volver" onclick="window.location.href='index.html'">← Volver a caja</button>
   </div>
 
   <div id="tabs">
     <button class="tab activo" data-tab="productos">Productos</button>
     <button class="tab" data-tab="compras">Compras</button>
+    <button class="tab" data-tab="ctacte">Cuenta corriente</button>
     <button class="tab" data-tab="stock">Ajuste stock</button>
     <button class="tab" data-tab="cierre">Cierre de caja</button>
     <button class="tab" data-tab="config">Configuración</button>
@@ -482,6 +483,17 @@
               <tr><td colspan="7" style="text-align:center;color:#999;padding:20px">Cargando...</td></tr>
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: CUENTA CORRIENTE ──────────────────────────────────────── -->
+    <div id="tab-ctacte" style="display:none">
+      <div class="card">
+        <h2>Cuenta corriente — Lo que debemos a proveedores</h2>
+        <div id="ctacte-total-general" style="font-size:1.1rem;font-weight:800;color:#c62828;margin-bottom:8px"></div>
+        <div id="ctacte-contenido">
+          <div style="text-align:center;color:#999;padding:20px">Cargando...</div>
         </div>
       </div>
     </div>
@@ -799,8 +811,83 @@ document.querySelectorAll('.tab').forEach(tab => {
     document.querySelectorAll('#contenido > div').forEach(d => d.style.display = 'none');
     document.getElementById(`tab-${nombre}`).style.display = 'block';
     if (nombre === 'cierre') cargarResumenDia();
+    if (nombre === 'ctacte') renderCtaCte();
   };
 });
+
+// ── Cuenta corriente ───────────────────────────────────────────────────────
+async function renderCtaCte() {
+  const cont = document.getElementById('ctacte-contenido');
+  const totalGen = document.getElementById('ctacte-total-general');
+  cont.innerHTML = '<div style="text-align:center;color:#999;padding:20px">Cargando...</div>';
+
+  // Recargar compras frescas
+  await cargarCompras();
+
+  // Solo las que NO están pagadas
+  const impagas = compras.filter(c => c['Estado_Pago'] && c['Estado_Pago'] !== 'Pagado');
+
+  if (impagas.length === 0) {
+    totalGen.textContent = '';
+    cont.innerHTML = '<div style="text-align:center;color:#2e7d32;padding:30px;font-weight:600">✓ No hay deudas pendientes con proveedores</div>';
+    return;
+  }
+
+  // Agrupar por proveedor
+  const porProv = {};
+  impagas.forEach(c => {
+    const prov = c['Proveedor'] || '(sin proveedor)';
+    if (!porProv[prov]) porProv[prov] = [];
+    porProv[prov].push(c);
+  });
+
+  let totalGeneral = 0;
+  let html = '';
+
+  Object.keys(porProv).sort().forEach(prov => {
+    const lista = porProv[prov];
+    const subtotal = lista.reduce((s, c) => s + (Number(c['Costo_Total']) || 0), 0);
+    totalGeneral += subtotal;
+
+    html += `
+      <div style="margin-bottom:18px;border:1px solid #eee;border-radius:10px;overflow:hidden">
+        <div style="background:#fff3e0;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:700;font-size:1rem">${prov}</span>
+          <span style="font-weight:800;color:#c62828">${formatPesos(subtotal)}</span>
+        </div>
+        <table style="font-size:0.85rem">
+          <thead><tr><th>Fecha</th><th>Producto</th><th>Estado</th><th>Monto</th><th></th></tr></thead>
+          <tbody>`;
+
+    lista.forEach(c => {
+      const estadoBadge = c['Estado_Pago'] === 'Parcial'
+        ? '<span class="badge badge-oferta">Parcial</span>'
+        : '<span class="badge" style="background:#ffebee;color:#c62828">Pendiente</span>';
+      html += `<tr>
+        <td>${c['Fecha'] || '-'}</td>
+        <td>${c['Producto'] || '-'}${c['Observación'] ? `<br><span style="font-size:0.75rem;color:#999">${c['Observación']}</span>` : ''}</td>
+        <td>${estadoBadge}</td>
+        <td style="font-weight:700">${formatPesos(c['Costo_Total'])}</td>
+        <td><button class="btn-sm" style="background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7" onclick="marcarPagada(${c._fila})">Pagar</button></td>
+      </tr>`;
+    });
+
+    html += `</tbody></table></div>`;
+  });
+
+  totalGen.textContent = `Total adeudado: ${formatPesos(totalGeneral)}`;
+  cont.innerHTML = html;
+}
+
+async function marcarPagada(fila) {
+  if (!confirm('¿Marcar esta compra como PAGADA? Esto la saca de la cuenta corriente.')) return;
+  try {
+    await apiPost('marcarCompraPagada', { fila });
+    await renderCtaCte();
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+}
 
 // ── Productos ──────────────────────────────────────────────────────────────
 function renderTablaProductos() {
