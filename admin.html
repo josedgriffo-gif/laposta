@@ -272,7 +272,7 @@
 
 <div id="app">
   <div id="header">
-    <h1>⚙ Panel Admin <span id="version-badge">v1.5</span></h1>
+    <h1>⚙ Panel Admin <span id="version-badge">v1.6</span></h1>
     <button id="btn-volver" onclick="window.location.href='index.html'">← Volver a caja</button>
   </div>
 
@@ -414,11 +414,13 @@
           </div>
           <div class="field">
             <label>Producto *</label>
-            <input type="text" id="compra-producto" placeholder="Nombre del producto">
+            <select id="compra-producto" onchange="autocompletarCompra()">
+              <option value="">— Elegí un producto —</option>
+            </select>
           </div>
           <div class="field">
             <label>Categoría</label>
-            <input type="text" id="compra-categoria" placeholder="Categoría">
+            <input type="text" id="compra-categoria" placeholder="Se completa solo" readonly style="background:#f5f5f5">
           </div>
           <div class="field">
             <label>Cantidad *</label>
@@ -426,13 +428,7 @@
           </div>
           <div class="field">
             <label>Unidad</label>
-            <select id="compra-unidad">
-              <option value="un">Unidad</option>
-              <option value="kg">Kilogramo</option>
-              <option value="lt">Litro</option>
-              <option value="doc">Docena</option>
-              <option value="caja">Caja</option>
-            </select>
+            <input type="text" id="compra-unidad" placeholder="Se completa solo" readonly style="background:#f5f5f5">
           </div>
           <div class="field">
             <label>Costo total *</label>
@@ -505,7 +501,9 @@
           </div>
           <div class="field">
             <label>Producto *</label>
-            <input type="text" id="ajuste-producto" placeholder="Nombre del producto">
+            <select id="ajuste-producto">
+              <option value="">— Elegí un producto —</option>
+            </select>
           </div>
           <div class="field">
             <label>Tipo *</label>
@@ -697,6 +695,38 @@ async function apiPost(action, data) {
 async function cargarProductos() {
   productos = await apiGet('getProductos');
   renderTablaProductos();
+  poblarSelectoresProducto();
+}
+
+function poblarSelectoresProducto() {
+  // Ordenar alfabéticamente para que sea fácil encontrar
+  const lista = [...productos]
+    .filter(p => p['Nombre'])
+    .sort((a, b) => a['Nombre'].localeCompare(b['Nombre']));
+
+  const opts = '<option value="">— Elegí un producto —</option>' +
+    lista.map(p => `<option value="${p['Nombre']}">${p['Nombre']} (${p['Categoría'] || 's/cat'})</option>`).join('');
+
+  ['compra-producto', 'ajuste-producto'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel) {
+      const actual = sel.value;
+      sel.innerHTML = opts;
+      sel.value = actual;
+    }
+  });
+}
+
+function autocompletarCompra() {
+  const nombre = document.getElementById('compra-producto').value;
+  const prod = productos.find(p => p['Nombre'] === nombre);
+  if (prod) {
+    document.getElementById('compra-categoria').value = prod['Categoría'] || '';
+    document.getElementById('compra-unidad').value = prod['Unidad'] || '';
+  } else {
+    document.getElementById('compra-categoria').value = '';
+    document.getElementById('compra-unidad').value = '';
+  }
 }
 
 async function cargarStock() {
