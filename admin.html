@@ -22,6 +22,7 @@
     flex-shrink: 0;
   }
   #header h1 { font-size: 1.2rem; font-weight: 700; }
+  #version-badge { font-size: 0.7rem; opacity: 0.6; margin-left: 8px; }
   #btn-volver {
     background: rgba(255,255,255,0.15);
     color: white;
@@ -271,7 +272,7 @@
 
 <div id="app">
   <div id="header">
-    <h1>⚙ Panel Admin</h1>
+    <h1>⚙ Panel Admin <span id="version-badge">v1.3</span></h1>
     <button id="btn-volver" onclick="window.location.href='index.html'">← Volver a caja</button>
   </div>
 
@@ -570,7 +571,10 @@
         </div>
         <div id="diferencia-efectivo" style="margin:10px 0;font-size:1rem;font-weight:600;display:none"></div>
         <div id="msg-cierre-ok" class="msg-ok">Cierre registrado correctamente</div>
-        <button class="btn-primary" onclick="cerrarDia()" style="margin-top:8px">Cerrar día</button>
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <button class="btn-primary" onclick="cerrarDia()">Cerrar día</button>
+          <button class="btn-secondary" onclick="recalcularHoy()" style="margin-top:0">↻ Recalcular</button>
+        </div>
       </div>
     </div>
 
@@ -1046,6 +1050,24 @@ async function cargarResumenDia() {
     `;
   } catch(e) {
     cont.innerHTML = `<div style="color:#c62828;padding:10px">Error al cargar resumen: ${e.message}</div>`;
+  }
+}
+
+async function recalcularHoy() {
+  const fecha = new Date().toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
+    .split('/').reverse().map(p => p.padStart(2,'0')).join('-');
+  const btn = event.target;
+  btn.textContent = 'Calculando...';
+  btn.disabled = true;
+  try {
+    await apiPost('recalcularResumen', { fecha });
+    await cargarResumenDia();
+    mostrarMsg('msg-cierre-ok', null);
+  } catch(e) {
+    alert('Error: ' + e.message);
+  } finally {
+    btn.textContent = '↻ Recalcular';
+    btn.disabled = false;
   }
 }
 

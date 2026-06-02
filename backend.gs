@@ -48,7 +48,8 @@ function doPost(e) {
       case 'guardarProducto':      return ok(guardarProducto(body.data));
       case 'updateProducto':       return ok(updateProducto(body.data));
       case 'bulkImportProductos':  return ok(bulkImportProductos(body.data));
-      case 'cerrarDia':       return ok(cerrarDia(body.data));
+      case 'cerrarDia':          return ok(cerrarDia(body.data));
+      case 'recalcularResumen':  return ok(recalcularResumen(body.data));
       default:                return error('Acción desconocida: ' + action);
     }
   } catch (err) {
@@ -80,7 +81,15 @@ function sheetToObjects(sheet) {
   const headers = data[0];
   return data.slice(1).map(row => {
     const obj = {};
-    headers.forEach((h, i) => obj[h] = row[i]);
+    headers.forEach((h, i) => {
+      const val = row[i];
+      // Convertir objetos Date a string YYYY-MM-DD para evitar problemas de comparación
+      if (val instanceof Date && !isNaN(val)) {
+        obj[h] = Utilities.formatDate(val, 'America/Argentina/Buenos_Aires', 'yyyy-MM-dd');
+      } else {
+        obj[h] = val;
+      }
+    });
     return obj;
   });
 }
@@ -282,8 +291,15 @@ function updateProducto(data) {
 /**
  * Recalcula y guarda el resumen del día en Resumen_Dia.
  */
+function formatearFecha(val) {
+  if (val instanceof Date && !isNaN(val)) {
+    return Utilities.formatDate(val, 'America/Argentina/Buenos_Aires', 'yyyy-MM-dd');
+  }
+  return String(val || '').substring(0, 10);
+}
+
 function actualizarResumenDia(ss, fecha) {
-  const ventas  = sheetToObjects(ss.getSheetByName('BD_Ventas')).filter(v => v['Fecha'] === fecha && v['Estado'] !== 'CANCELADA');
+  const ventas  = sheetToObjects(ss.getSheetByName('BD_Ventas')).filter(v => formatearFecha(v['Fecha']) === fecha && v['Estado'] !== 'CANCELADA');
   const config  = getConfig();
   const meta    = config.Meta_Diaria;
 
@@ -307,7 +323,7 @@ function actualizarResumenDia(ss, fecha) {
 
   // Buscar si ya existe fila para esta fecha
   for (let i = 1; i < rows.length; i++) {
-    if (rows[i][0] === fecha) {
+    if (formatearFecha(rows[i][0]) === fecha) {
       sheetResumen.getRange(i + 1, 1, 1, 14).setValues([[
         fecha, totalVentas, costoTotal, margenAbs, margenPct,
         cantTickets, efectivo, mercadoPago, transferencia,
@@ -332,6 +348,28 @@ function actualizarResumenDia(ss, fecha) {
 function cerrarDia(data) {
   const ss = SpreadsheetApp.openById(SHEET_ID);
   actualizarResumenDia(ss, data.fecha);
+  return getResumenHoy();
+}
+
+/**
+ * Limpia filas duplicadas de Resumen_Dia y recalcula para una fecha dada.
+ * data = { fecha }
+ */
+function recalcularResumen(data) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const sheet = ss.getSheetByName('Resumen_Dia');
+  const fecha = data.fecha || fechaHoy();
+
+  // Eliminar todas las filas de esa fecha
+  const rows = sheet.getDataRange().getValues();
+  for (let i = rows.length - 1; i >= 1; i--) {
+    if (formatearFecha(rows[i][0]) === fecha) {
+      sheet.deleteRow(i + 1);
+    }
+  }
+
+  // Recalcular desde cero
+  actualizarResumenDia(ss, fecha);
   return getResumenHoy();
 }
 
