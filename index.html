@@ -339,6 +339,16 @@
     text-align: center;
   }
   #peso-precio-preview { text-align: center; color: #2e7d32; font-weight: 600; font-size: 1rem; min-height: 22px; }
+  .peso-rapido {
+    background: #e8f5e9;
+    color: #1b5e20;
+    border-radius: 8px;
+    padding: 12px 4px;
+    font-size: 1rem;
+    font-weight: 700;
+    border: 1px solid #c8e6c9;
+  }
+  .peso-rapido:active { background: #c8e6c9; }
 
   /* ── Modal PIN ────────────────────────────────────────────────────────── */
   #modal-pin .modal { max-width: 320px; align-items: center; }
@@ -455,7 +465,7 @@
 
   <!-- Header -->
   <div id="header">
-    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v2.1</span></h1>
+    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v2.2</span></h1>
     <div id="header-right">
       <span id="offline-badge">SIN CONEXIÓN</span>
       <button id="btn-admin">Admin</button>
@@ -498,13 +508,25 @@
   </div>
 </div>
 
-<!-- Modal: ingreso de peso/cantidad kg -->
+<!-- Modal: ingreso de peso en GRAMOS -->
 <div class="modal-overlay" id="modal-peso">
   <div class="modal">
-    <h2>Ingresar cantidad</h2>
+    <h2>Ingresar peso</h2>
     <div id="peso-producto-nombre"></div>
-    <input type="text" id="peso-input" placeholder="0.000" readonly>
+    <div style="display:flex;align-items:baseline;justify-content:center;gap:6px;border:2px solid #2e7d32;border-radius:8px;padding:10px">
+      <input type="text" id="peso-input" placeholder="0" readonly style="border:none;text-align:right;font-size:1.6rem;font-weight:700;width:auto;flex:1;padding:0">
+      <span style="font-size:1.1rem;font-weight:700;color:#2e7d32">gramos</span>
+    </div>
     <div id="peso-precio-preview"></div>
+
+    <!-- Botones rápidos de peso -->
+    <div id="peso-rapidos" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+      <button class="peso-rapido" data-gr="250">250 g</button>
+      <button class="peso-rapido" data-gr="500">500 g</button>
+      <button class="peso-rapido" data-gr="750">750 g</button>
+      <button class="peso-rapido" data-gr="1000">1 kg</button>
+    </div>
+
     <!-- TODO: Aquí integrar lectura de balanza Bluetooth — función leerBalanza() -->
     <div id="peso-teclado">
       <button class="peso-key" data-val="1">1</button>
@@ -516,7 +538,7 @@
       <button class="peso-key" data-val="7">7</button>
       <button class="peso-key" data-val="8">8</button>
       <button class="peso-key" data-val="9">9</button>
-      <button class="peso-key" data-val=".">.</button>
+      <button class="peso-key" data-val="00">00</button>
       <button class="peso-key" data-val="0">0</button>
       <button class="peso-key" data-val="⌫">⌫</button>
     </div>
@@ -755,19 +777,35 @@ function tieneOfertaVigente(prod) {
   return true;
 }
 
+// Detecta si un producto se vende al peso
+function esProductoPorPeso(prod) {
+  const u = (prod['Unidad'] || '').toLowerCase();
+  return u === 'kg' || u === 'kilo' || u === 'kilos' || u === '100gr' || u === 'gr' || u === 'gramos';
+}
+
+// Factor para normalizar el precio cargado a "precio por kg"
+// (si el producto está cargado por 100gr, su precio por kg es ×10)
+function factorPrecioKg(prod) {
+  const u = (prod['Unidad'] || '').toLowerCase();
+  return u === '100gr' ? 10 : 1;
+}
+
+// Devuelve el precio unitario aplicando oferta si corresponde.
+// Para productos por peso, el precio queda normalizado a "por kg".
 function precioConOferta(prod, cantidad) {
-  if (!tieneOfertaVigente(prod)) return Number(prod['Precio']) || 0;
+  const factor = esProductoPorPeso(prod) ? factorPrecioKg(prod) : 1;
+  const precioBase = (Number(prod['Precio']) || 0) * factor;
+  if (!tieneOfertaVigente(prod)) return precioBase;
   const minOferta = Number(prod['Cantidad_Min_Oferta']) || 0;
-  if (cantidad >= minOferta && minOferta > 0) return Number(prod['Precio_Oferta']) || Number(prod['Precio']) || 0;
-  return Number(prod['Precio']) || 0;
+  if (cantidad >= minOferta && minOferta > 0) {
+    return (Number(prod['Precio_Oferta']) || Number(prod['Precio']) || 0) * factor;
+  }
+  return precioBase;
 }
 
 // ── Carrito ────────────────────────────────────────────────────────────────
 function agregarAlCarrito(prod) {
-  const unidad = (prod['Unidad'] || '').toLowerCase();
-  const esKg = unidad === 'kg' || unidad === 'kilo' || unidad === 'kilos';
-
-  if (esKg) {
+  if (esProductoPorPeso(prod)) {
     abrirModalPeso(prod);
     return;
   }
@@ -839,8 +877,16 @@ function renderCarrito() {
   carrito.forEach((item, idx) => {
     const subtotal = item.precio * item.cantidad;
     totalVenta += subtotal;
-    const oferta = tieneOfertaVigente(item.prod) && item.precio !== Number(item.prod['Precio']);
-    const cantDisplay = item.esKg ? item.cantidad.toFixed(3) : item.cantidad;
+    const oferta = tieneOfertaVigente(item.prod) && item.precio !== Number(item.prod['Precio']) * factorPrecioKg(item.prod);
+    let cantDisplay, unidadDisplay;
+    if (item.esKg) {
+      const gr = item.gramos != null ? item.gramos : Math.round(item.cantidad * 1000);
+      if (gr >= 1000) { cantDisplay = (gr/1000).toLocaleString('es-AR'); unidadDisplay = 'kg'; }
+      else { cantDisplay = gr; unidadDisplay = 'g'; }
+    } else {
+      cantDisplay = item.cantidad;
+      unidadDisplay = item.unidad;
+    }
 
     html += `
       <div class="item-carrito">
@@ -852,7 +898,7 @@ function renderCarrito() {
         <div class="item-controles">
           ${!item.esKg ? `<button class="btn-qty" onclick="cambiarCantidad(${idx},-1)">-</button>` : ''}
           <span class="item-qty">${cantDisplay}</span>
-          <span class="item-unidad">${item.unidad}</span>
+          <span class="item-unidad">${unidadDisplay}</span>
           ${!item.esKg ? `<button class="btn-qty" onclick="cambiarCantidad(${idx},1)">+</button>` : ''}
           <button class="btn-eliminar" onclick="eliminarItem(${idx})">X</button>
         </div>
@@ -876,29 +922,39 @@ document.querySelectorAll('.peso-key').forEach(key => {
     const inp = document.getElementById('peso-input');
     if (val === '⌫') {
       inp.value = inp.value.slice(0, -1);
-    } else if (val === '.') {
-      if (!inp.value.includes('.')) inp.value += '.';
     } else {
-      if (inp.value.length < 7) inp.value += val;
+      // Solo dígitos (gramos enteros), máximo 6 cifras
+      if ((inp.value + val).length <= 6) inp.value = (parseInt(inp.value + val) || 0).toString();
     }
     actualizarPesoPrecio();
   };
 });
 
+// Botones rápidos de peso (250, 500, 750, 1000 g)
+document.querySelectorAll('.peso-rapido').forEach(btn => {
+  btn.onclick = () => {
+    document.getElementById('peso-input').value = btn.dataset.gr;
+    actualizarPesoPrecio();
+  };
+});
+
 function actualizarPesoPrecio() {
-  const kg = parseFloat(document.getElementById('peso-input').value) || 0;
+  const gramos = parseInt(document.getElementById('peso-input').value) || 0;
+  const kg = gramos / 1000;
   const prod = pesoProductoActual;
   if (!prod) return;
-  const precio = precioConOferta(prod, kg);
+  const precio = precioConOferta(prod, kg); // precio por kg
   const subtotal = precio * kg;
+  const pesoTexto = gramos >= 1000 ? `${(gramos/1000).toLocaleString('es-AR')} kg` : `${gramos} g`;
   document.getElementById('peso-precio-preview').textContent =
-    kg > 0 ? `${kg.toFixed(3)} kg × ${formatPesos(precio)} = ${formatPesos(subtotal)}` : '';
+    gramos > 0 ? `${pesoTexto} × ${formatPesos(precio)}/kg = ${formatPesos(subtotal)}` : '';
 }
 
 document.getElementById('btn-peso-cancelar').onclick = cerrarModalPeso;
 document.getElementById('btn-peso-agregar').onclick = () => {
-  const kg = parseFloat(document.getElementById('peso-input').value) || 0;
-  if (kg <= 0) { alert('Ingresá un peso válido'); return; }
+  const gramos = parseInt(document.getElementById('peso-input').value) || 0;
+  if (gramos <= 0) { alert('Ingresá un peso válido en gramos'); return; }
+  const kg = gramos / 1000;
   const prod = pesoProductoActual;
   const precio = precioConOferta(prod, kg);
   carrito.push({
@@ -906,8 +962,9 @@ document.getElementById('btn-peso-agregar').onclick = () => {
     categoria: prod['Categoría'] || '',
     unidad: 'kg',
     precio: precio,
-    costo: Number(prod['Costo']) || 0,
+    costo: (Number(prod['Costo']) || 0) * factorPrecioKg(prod),
     cantidad: kg,
+    gramos: gramos,
     esKg: true,
     prod: prod
   });
