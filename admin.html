@@ -272,7 +272,7 @@
 
 <div id="app">
   <div id="header">
-    <h1>⚙ Panel Admin <span id="version-badge">v2.2</span></h1>
+    <h1>⚙ Panel Admin <span id="version-badge">v2.3</span></h1>
     <button id="btn-volver" onclick="window.location.href='index.html'">← Volver a caja</button>
   </div>
 
@@ -301,16 +301,9 @@
             <input type="text" id="prod-categoria" placeholder="Ej: Lácteos">
           </div>
           <div class="field">
-            <label>Unidad *</label>
-            <select id="prod-unidad">
-              <option value="un">Unidad (un)</option>
-              <option value="kg">Kilogramo (kg)</option>
-              <option value="lt">Litro (lt)</option>
-              <option value="doc">Docena (doc)</option>
-              <option value="caja">Caja</option>
-              <option value="porción">Porción</option>
-              <option value="100gr">100 gramos</option>
-            </select>
+            <label>Unidad * <span style="font-weight:400;color:#888">(escribí o elegí)</span></label>
+            <input type="text" id="prod-unidad" list="unidades-list" placeholder="un, kg, lt, caja..." autocomplete="off">
+            <datalist id="unidades-list"></datalist>
           </div>
           <div class="field">
             <label>Precio de venta *</label>
@@ -656,15 +649,7 @@
       <div class="field"><label>Categoría</label><input type="text" id="edit-categoria"></div>
       <div class="field">
         <label>Unidad</label>
-        <select id="edit-unidad">
-          <option value="un">Unidad (un)</option>
-          <option value="kg">Kilogramo (kg)</option>
-          <option value="lt">Litro (lt)</option>
-          <option value="doc">Docena (doc)</option>
-          <option value="caja">Caja</option>
-          <option value="porción">Porción</option>
-          <option value="100gr">100 gramos</option>
-        </select>
+        <input type="text" id="edit-unidad" list="unidades-list" placeholder="un, kg, lt, caja..." autocomplete="off">
       </div>
       <div class="field"><label>Precio</label><input type="number" id="edit-precio" min="0"></div>
       <div class="field"><label>Costo</label><input type="number" id="edit-costo" min="0"></div>
@@ -736,6 +721,16 @@ async function cargarProductos() {
   productos = await apiGet('getProductos');
   renderTablaProductos();
   poblarSelectoresProducto();
+  poblarUnidades();
+}
+
+// Llena el datalist de unidades: base + las que ya existen en productos
+function poblarUnidades() {
+  const base = ['un', 'kg', 'lt', 'doc', 'caja', 'porción', '100gr', 'botella', 'bidón', 'cajón'];
+  const usadas = productos.map(p => p['Unidad']).filter(Boolean);
+  const todas = [...new Set([...base, ...usadas])].sort();
+  const dl = document.getElementById('unidades-list');
+  if (dl) dl.innerHTML = todas.map(u => `<option value="${u}">`).join('');
 }
 
 function poblarSelectoresProducto() {
