@@ -30,6 +30,7 @@ function doGet(e) {
       case 'getCompras':      return ok(getCompras());
       case 'getAjustes':      return ok(getAjustes());
       case 'getGastos':       return ok(getGastos());
+      case 'getInforme':      return ok(getInforme(e.parameter.desde, e.parameter.hasta));
       default:                return ok({ status: 'La Posta API activa' });
     }
   } catch (err) {
@@ -185,6 +186,90 @@ function marcarCompraPagada(data) {
 
 function getAjustes() {
   return sheetToObjects(getSheet('Ajustes_Stock'));
+}
+
+// ── Informes ────────────────────────────────────────────────────────────────
+
+/**
+ * Calcula el informe completo de un rango de fechas (inclusive).
+ * desde, hasta = 'yyyy-MM-dd'
+ */
+function getInforme(desde, hasta) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+
+  const enRango = (f) => {
+    const fecha = formatearFecha(f);
+    return fecha >= desde && fecha <= hasta;
+  };
+
+  // ── Ventas ──
+  const ventas = sheetToObjects(ss.getSheetByName('BD_Ventas'))
+    .filter(v => enRango(v['Fecha']) && v['Estado'] !== 'CANCELADA');
+
+  const totalVentas = ventas.reduce((s, v) => s + (Number(v['Total Venta']) || 0), 0);
+  const costoVentas = ventas.reduce((s, v) => s + (Number(v['Costo Total']) || 0), 0);
+  const margenBruto = totalVentas - costoVentas;
+  const cantTickets = ventas.length;
+  const ticketProm  = cantTickets > 0 ? totalVentas / cantTickets : 0;
+
+  const medios = {
+    efectivo:      ventas.reduce((s, v) => s + (Number(v['Efectivo']) || 0), 0),
+    mercadoPago:   ventas.reduce((s, v) => s + (Number(v['Mercado Pago']) || 0), 0),
+    transferencia: ventas.reduce((s, v) => s + (Number(v['Transferencia']) || 0), 0),
+    cuentaDni:     ventas.reduce((s, v) => s + (Number(v['Cuenta DNI']) || 0), 0),
+    tarjeta:       ventas.reduce((s, v) => s + (Number(v['Tarjeta']) || 0), 0),
+    otro:          ventas.reduce((s, v) => s + (Number(v['Otro']) || 0), 0)
+  };
+
+  // ── Detalle: ranking de productos y por categoría ──
+  const detalle = sheetToObjects(ss.getSheetByName('Detalle_Ventas')).filter(d => enRango(d['Fecha']));
+
+  const prodMap = {};
+  const catMap = {};
+  detalle.forEach(d => {
+    const nombre = d['Producto'] || '(sin nombre)';
+    const cat = d['Categoría'] || '(sin categoría)';
+    const subtotal = Number(d['Subtotal']) || 0;
+    const margen = Number(d['Margen $']) || 0;
+    const cantidad = Number(d['Cantidad']) || 0;
+
+    if (!prodMap[nombre]) prodMap[nombre] = { nombre, categoria: cat, ingreso: 0, margen: 0, cantidad: 0 };
+    prodMap[nombre].ingreso += subtotal;
+    prodMap[nombre].margen += margen;
+    prodMap[nombre].cantidad += cantidad;
+
+    if (!catMap[cat]) catMap[cat] = { categoria: cat, ingreso: 0, margen: 0 };
+    catMap[cat].ingreso += subtotal;
+    catMap[cat].margen += margen;
+  });
+
+  const topProductos = Object.values(prodMap).sort((a, b) => b.ingreso - a.ingreso);
+  const porCategoria = Object.values(catMap).sort((a, b) => b.ingreso - a.ingreso);
+
+  // ── Gastos ──
+  const gastos = getGastos().filter(g => enRango(g['Fecha']));
+  const totalGastos = gastos.reduce((s, g) => s + (Number(g['Monto']) || 0), 0);
+  const gastoCatMap = {};
+  gastos.forEach(g => {
+    const cat = g['Categoría'] || '(sin categoría)';
+    if (!gastoCatMap[cat]) gastoCatMap[cat] = { categoria: cat, monto: 0 };
+    gastoCatMap[cat].monto += Number(g['Monto']) || 0;
+  });
+  const gastosPorCategoria = Object.values(gastoCatMap).sort((a, b) => b.monto - a.monto);
+
+  // ── Resultado neto = margen bruto - gastos ──
+  const resultadoNeto = margenBruto - totalGastos;
+
+  return {
+    desde, hasta,
+    totalVentas, costoVentas, margenBruto,
+    margenPct: totalVentas > 0 ? (margenBruto / totalVentas * 100) : 0,
+    cantTickets, ticketProm,
+    medios,
+    topProductos, porCategoria,
+    totalGastos, gastosPorCategoria,
+    resultadoNeto
+  };
 }
 
 // ── Gastos ──────────────────────────────────────────────────────────────────

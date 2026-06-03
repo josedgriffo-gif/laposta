@@ -272,7 +272,7 @@
 
 <div id="app">
   <div id="header">
-    <h1>⚙ Panel Admin <span id="version-badge">v2.8</span></h1>
+    <h1>⚙ Panel Admin <span id="version-badge">v2.9</span></h1>
     <button id="btn-volver" onclick="window.location.href='index.html'">← Volver a caja</button>
   </div>
 
@@ -283,6 +283,7 @@
     <button class="tab" data-tab="gastos">Gastos</button>
     <button class="tab" data-tab="stock">Ajuste stock</button>
     <button class="tab" data-tab="cierre">Cierre de caja</button>
+    <button class="tab" data-tab="informes">Informes</button>
     <button class="tab" data-tab="config">Configuración</button>
   </div>
 
@@ -690,6 +691,32 @@
       </div>
     </div>
 
+    <!-- ── TAB: INFORMES ──────────────────────────────────────────────── -->
+    <div id="tab-informes" style="display:none">
+      <div class="card">
+        <h2>Período del informe</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+          <button class="btn-secondary btn-sm" onclick="informeRapido('hoy')">Hoy</button>
+          <button class="btn-secondary btn-sm" onclick="informeRapido('semana')">Últimos 7 días</button>
+          <button class="btn-secondary btn-sm" onclick="informeRapido('mes')">Este mes</button>
+          <button class="btn-secondary btn-sm" onclick="informeRapido('mespasado')">Mes pasado</button>
+        </div>
+        <div class="form-grid">
+          <div class="field">
+            <label>Desde</label>
+            <input type="date" id="inf-desde">
+          </div>
+          <div class="field">
+            <label>Hasta</label>
+            <input type="date" id="inf-hasta">
+          </div>
+        </div>
+        <button class="btn-primary" onclick="generarInforme()" style="margin-top:8px">Generar informe</button>
+      </div>
+
+      <div id="informe-resultado"></div>
+    </div>
+
     <!-- ── TAB: CONFIGURACIÓN ─────────────────────────────────────────── -->
     <div id="tab-config" style="display:none">
       <div class="card">
@@ -896,8 +923,128 @@ document.querySelectorAll('.tab').forEach(tab => {
     if (nombre === 'cierre') cargarResumenDia();
     if (nombre === 'ctacte') renderCtaCte();
     if (nombre === 'gastos') cargarGastos();
+    if (nombre === 'informes') initInformes();
   };
 });
+
+// ── Informes ───────────────────────────────────────────────────────────────
+function initInformes() {
+  // Si no hay fechas cargadas, arranca con "este mes"
+  if (!document.getElementById('inf-desde').value) informeRapido('mes');
+}
+
+function ymd(d) {
+  return d.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
+    .split('/').reverse().map(p => p.padStart(2, '0')).join('-');
+}
+
+function informeRapido(tipo) {
+  const hoy = new Date();
+  let desde, hasta;
+  if (tipo === 'hoy') {
+    desde = hasta = ymd(hoy);
+  } else if (tipo === 'semana') {
+    const d = new Date(hoy); d.setDate(d.getDate() - 6);
+    desde = ymd(d); hasta = ymd(hoy);
+  } else if (tipo === 'mes') {
+    desde = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+    hasta = ymd(hoy);
+  } else if (tipo === 'mespasado') {
+    desde = ymd(new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1));
+    hasta = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 0));
+  }
+  document.getElementById('inf-desde').value = desde;
+  document.getElementById('inf-hasta').value = hasta;
+  generarInforme();
+}
+
+async function generarInforme() {
+  const desde = document.getElementById('inf-desde').value;
+  const hasta = document.getElementById('inf-hasta').value;
+  const cont = document.getElementById('informe-resultado');
+  if (!desde || !hasta) { alert('Elegí las fechas Desde y Hasta'); return; }
+  if (desde > hasta) { alert('La fecha Desde no puede ser mayor que Hasta'); return; }
+
+  cont.innerHTML = '<div class="card" style="text-align:center;color:#999;padding:30px">Generando informe...</div>';
+
+  try {
+    const inf = await apiGet(`getInforme&desde=${desde}&hasta=${hasta}`);
+    renderInforme(inf);
+  } catch(e) {
+    cont.innerHTML = `<div class="card" style="color:#c62828;padding:20px">Error: ${e.message}</div>`;
+  }
+}
+
+function renderInforme(inf) {
+  const cont = document.getElementById('informe-resultado');
+  const neto = inf.resultadoNeto;
+  const netoColor = neto >= 0 ? '#2e7d32' : '#c62828';
+
+  // Tarjetas principales
+  let html = `
+    <div class="card">
+      <h2>Resultado del período</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
+        ${tarjeta('Ventas', formatPesos(inf.totalVentas), '#1b5e20')}
+        ${tarjeta('Costo mercadería', formatPesos(inf.costoVentas), '#888')}
+        ${tarjeta('Margen bruto', formatPesos(inf.margenBruto), '#2e7d32')}
+        ${tarjeta('Gastos', formatPesos(inf.totalGastos), '#e65100')}
+      </div>
+      <div style="margin-top:14px;padding:16px;border-radius:10px;background:${neto>=0?'#e8f5e9':'#ffebee'};text-align:center">
+        <div style="font-size:0.85rem;color:#555;font-weight:600">RESULTADO NETO (margen − gastos)</div>
+        <div style="font-size:2rem;font-weight:800;color:${netoColor}">${formatPesos(neto)}</div>
+      </div>
+      <div style="display:flex;justify-content:space-around;margin-top:12px;font-size:0.85rem;color:#555">
+        <span>Tickets: <strong>${inf.cantTickets}</strong></span>
+        <span>Ticket promedio: <strong>${formatPesos(inf.ticketProm)}</strong></span>
+        <span>Margen: <strong>${inf.margenPct.toFixed(1)}%</strong></span>
+      </div>
+    </div>`;
+
+  // Medios de pago
+  const medios = [
+    ['Efectivo', inf.medios.efectivo], ['Mercado Pago', inf.medios.mercadoPago],
+    ['Transferencia', inf.medios.transferencia], ['Cuenta DNI', inf.medios.cuentaDni],
+    ['Tarjeta', inf.medios.tarjeta], ['Otro', inf.medios.otro]
+  ].filter(m => m[1] > 0);
+  if (medios.length) {
+    html += `<div class="card"><h2>Por medio de pago</h2>${medios.map(m =>
+      `<div class="resumen-fila"><span class="label">${m[0]}</span><span class="valor">${formatPesos(m[1])}</span></div>`).join('')}</div>`;
+  }
+
+  // Ventas por categoría
+  if (inf.porCategoria.length) {
+    html += `<div class="card"><h2>Ventas por categoría</h2>
+      <div class="tabla-scroll"><table><thead><tr><th>Categoría</th><th>Ingreso</th><th>Margen</th></tr></thead><tbody>
+      ${inf.porCategoria.map(c =>
+        `<tr><td>${c.categoria}</td><td style="font-weight:700">${formatPesos(c.ingreso)}</td><td style="color:#2e7d32">${formatPesos(c.margen)}</td></tr>`).join('')}
+      </tbody></table></div></div>`;
+  }
+
+  // Top productos
+  if (inf.topProductos.length) {
+    html += `<div class="card"><h2>Productos más vendidos</h2>
+      <div class="tabla-scroll"><table><thead><tr><th>#</th><th>Producto</th><th>Cant.</th><th>Ingreso</th><th>Margen</th></tr></thead><tbody>
+      ${inf.topProductos.slice(0, 20).map((p, i) =>
+        `<tr><td>${i+1}</td><td><strong>${p.nombre}</strong></td><td>${p.cantidad % 1 === 0 ? p.cantidad : p.cantidad.toFixed(3)}</td><td style="font-weight:700">${formatPesos(p.ingreso)}</td><td style="color:#2e7d32">${formatPesos(p.margen)}</td></tr>`).join('')}
+      </tbody></table></div></div>`;
+  }
+
+  // Gastos por categoría
+  if (inf.gastosPorCategoria.length) {
+    html += `<div class="card"><h2>Gastos por categoría</h2>${inf.gastosPorCategoria.map(g =>
+      `<div class="resumen-fila"><span class="label">${g.categoria}</span><span class="valor" style="color:#e65100">${formatPesos(g.monto)}</span></div>`).join('')}</div>`;
+  }
+
+  cont.innerHTML = html;
+}
+
+function tarjeta(titulo, valor, color) {
+  return `<div style="background:#f8f8f8;border-radius:10px;padding:14px;text-align:center">
+    <div style="font-size:1.3rem;font-weight:800;color:${color}">${valor}</div>
+    <div style="font-size:0.75rem;color:#888;margin-top:2px">${titulo}</div>
+  </div>`;
+}
 
 // ── Gastos ─────────────────────────────────────────────────────────────────
 let gastos = [];
