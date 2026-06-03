@@ -31,6 +31,7 @@ function doGet(e) {
       case 'getAjustes':      return ok(getAjustes());
       case 'getGastos':       return ok(getGastos());
       case 'getInforme':      return ok(getInforme(e.parameter.desde, e.parameter.hasta));
+      case 'getDatosExport':  return ok(getDatosExport(e.parameter.desde, e.parameter.hasta));
       default:                return ok({ status: 'La Posta API activa' });
     }
   } catch (err) {
@@ -269,6 +270,28 @@ function getInforme(desde, hasta) {
     topProductos, porCategoria,
     totalGastos, gastosPorCategoria,
     resultadoNeto
+  };
+}
+
+/**
+ * Devuelve todos los datos del sistema para exportar a Excel.
+ * Las tablas con fecha se filtran por rango; productos y stock van completos.
+ */
+function getDatosExport(desde, hasta) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const enRango = (f) => {
+    const fecha = formatearFecha(f);
+    return fecha >= desde && fecha <= hasta;
+  };
+
+  return {
+    productos: sheetToObjects(ss.getSheetByName('Productos')),
+    stock:     ss.getSheetByName('Stock_Actual') ? sheetToObjects(ss.getSheetByName('Stock_Actual')) : [],
+    ventas:    sheetToObjects(ss.getSheetByName('BD_Ventas')).filter(v => enRango(v['Fecha'])),
+    detalle:   sheetToObjects(ss.getSheetByName('Detalle_Ventas')).filter(d => enRango(d['Fecha'])),
+    compras:   sheetToObjects(ss.getSheetByName('Compras')).filter(c => enRango(c['Fecha'])),
+    gastos:    getGastos().filter(g => enRango(g['Fecha'])),
+    ajustes:   sheetToObjects(ss.getSheetByName('Ajustes_Stock')).filter(a => enRango(a['Fecha']))
   };
 }
 

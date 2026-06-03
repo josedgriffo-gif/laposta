@@ -262,6 +262,8 @@
   .msg-error { background: #ffebee; color: #c62828; border-radius: 8px; padding: 10px 14px; font-weight: 600; font-size: 0.9rem; display: none; }
   .msg-error.visible { display: block; }
 </style>
+<!-- Librería para generar archivos Excel (.xlsx) en el navegador -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -272,7 +274,7 @@
 
 <div id="app">
   <div id="header">
-    <h1>⚙ Panel Admin <span id="version-badge">v2.9</span></h1>
+    <h1>⚙ Panel Admin <span id="version-badge">v3.0</span></h1>
     <button id="btn-volver" onclick="window.location.href='index.html'">← Volver a caja</button>
   </div>
 
@@ -284,6 +286,7 @@
     <button class="tab" data-tab="stock">Ajuste stock</button>
     <button class="tab" data-tab="cierre">Cierre de caja</button>
     <button class="tab" data-tab="informes">Informes</button>
+    <button class="tab" data-tab="exportar">Exportar</button>
     <button class="tab" data-tab="config">Configuración</button>
   </div>
 
@@ -717,6 +720,44 @@
       <div id="informe-resultado"></div>
     </div>
 
+    <!-- ── TAB: EXPORTAR ──────────────────────────────────────────────── -->
+    <div id="tab-exportar" style="display:none">
+      <div class="card">
+        <h2>Exportar a Excel</h2>
+        <p style="font-size:0.9rem;color:#555;line-height:1.5;margin-bottom:14px">
+          Elegí qué datos querés bajar. Se genera <strong>un archivo Excel</strong> con una hoja por cada cosa.
+          Todo local, no toca el sistema. Ideal para armar tablas dinámicas y análisis en tu Excel.
+        </p>
+
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.95rem"><input type="checkbox" id="exp-productos" checked> Productos (lista de precios y costos)</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.95rem"><input type="checkbox" id="exp-stock" checked> Stock actual</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.95rem"><input type="checkbox" id="exp-ventas" checked> Ventas (resumen por ticket)</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.95rem"><input type="checkbox" id="exp-detalle" checked> Detalle de ventas (renglón por producto)</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.95rem"><input type="checkbox" id="exp-compras" checked> Compras</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.95rem"><input type="checkbox" id="exp-gastos" checked> Gastos</label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:0.95rem"><input type="checkbox" id="exp-ajustes" checked> Ajustes de stock</label>
+        </div>
+
+        <div style="border-top:1px solid #eee;padding-top:12px;margin-bottom:8px">
+          <div style="font-size:0.85rem;font-weight:600;color:#555;margin-bottom:8px">Período (para ventas, compras, gastos y ajustes)</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+            <button class="btn-secondary btn-sm" onclick="expRango('mes')">Este mes</button>
+            <button class="btn-secondary btn-sm" onclick="expRango('mespasado')">Mes pasado</button>
+            <button class="btn-secondary btn-sm" onclick="expRango('anio')">Este año</button>
+            <button class="btn-secondary btn-sm" onclick="expRango('todo')">Todo</button>
+          </div>
+          <div class="form-grid">
+            <div class="field"><label>Desde</label><input type="date" id="exp-desde"></div>
+            <div class="field"><label>Hasta</label><input type="date" id="exp-hasta"></div>
+          </div>
+        </div>
+
+        <div id="msg-export" style="font-size:0.9rem;color:#555;margin:8px 0"></div>
+        <button class="btn-primary" onclick="exportarExcel()">📥 Descargar Excel</button>
+      </div>
+    </div>
+
     <!-- ── TAB: CONFIGURACIÓN ─────────────────────────────────────────── -->
     <div id="tab-config" style="display:none">
       <div class="card">
@@ -924,8 +965,81 @@ document.querySelectorAll('.tab').forEach(tab => {
     if (nombre === 'ctacte') renderCtaCte();
     if (nombre === 'gastos') cargarGastos();
     if (nombre === 'informes') initInformes();
+    if (nombre === 'exportar') initExportar();
   };
 });
+
+// ── Exportar a Excel ───────────────────────────────────────────────────────
+function initExportar() {
+  if (!document.getElementById('exp-desde').value) expRango('mes');
+}
+
+function expRango(tipo) {
+  const hoy = new Date();
+  let desde, hasta;
+  if (tipo === 'mes') {
+    desde = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 1)); hasta = ymd(hoy);
+  } else if (tipo === 'mespasado') {
+    desde = ymd(new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1));
+    hasta = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 0));
+  } else if (tipo === 'anio') {
+    desde = ymd(new Date(hoy.getFullYear(), 0, 1)); hasta = ymd(hoy);
+  } else if (tipo === 'todo') {
+    desde = '2000-01-01'; hasta = '2100-12-31';
+  }
+  document.getElementById('exp-desde').value = desde;
+  document.getElementById('exp-hasta').value = hasta;
+}
+
+function limpiarFilas(arr) {
+  // Saca el campo interno _fila antes de exportar
+  return (arr || []).map(o => { const c = {...o}; delete c._fila; return c; });
+}
+
+async function exportarExcel() {
+  const desde = document.getElementById('exp-desde').value;
+  const hasta = document.getElementById('exp-hasta').value;
+  const msg = document.getElementById('msg-export');
+
+  if (typeof XLSX === 'undefined') {
+    msg.textContent = 'No se pudo cargar el generador de Excel. Revisá la conexión.';
+    return;
+  }
+
+  msg.textContent = 'Generando archivo... puede tardar unos segundos.';
+
+  try {
+    const data = await apiGet(`getDatosExport&desde=${desde}&hasta=${hasta}`);
+    const wb = XLSX.utils.book_new();
+    let hojas = 0;
+
+    const agregar = (chkId, nombreHoja, filas) => {
+      if (document.getElementById(chkId).checked && filas && filas.length) {
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(limpiarFilas(filas)), nombreHoja);
+        hojas++;
+      }
+    };
+
+    agregar('exp-productos', 'Productos', data.productos);
+    agregar('exp-stock',     'Stock',     data.stock);
+    agregar('exp-ventas',    'Ventas',    data.ventas);
+    agregar('exp-detalle',   'DetalleVentas', data.detalle);
+    agregar('exp-compras',   'Compras',   data.compras);
+    agregar('exp-gastos',    'Gastos',    data.gastos);
+    agregar('exp-ajustes',   'Ajustes',   data.ajustes);
+
+    if (hojas === 0) {
+      msg.textContent = 'No hay datos para exportar con lo seleccionado.';
+      return;
+    }
+
+    const hoy = ymd(new Date());
+    XLSX.writeFile(wb, `LaPosta_export_${hoy}.xlsx`);
+    msg.textContent = `✓ Archivo descargado con ${hojas} hoja(s).`;
+  } catch(e) {
+    msg.textContent = 'Error: ' + e.message;
+  }
+}
 
 // ── Informes ───────────────────────────────────────────────────────────────
 function initInformes() {
