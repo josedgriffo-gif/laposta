@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>La Posta — Vista Dueño</title>
+<title>La Posta — Nroshoy</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #1a1a1a; font-size: 16px; }
@@ -192,7 +192,7 @@
 
 <!-- Pantalla PIN -->
 <div id="pantalla-pin">
-  <h2>🔐 Vista Dueño</h2>
+  <h2>🔐 Nroshoy</h2>
   <div id="pin-dots">
     <div class="pin-dot" id="d0"></div>
     <div class="pin-dot" id="d1"></div>
@@ -223,7 +223,7 @@
 
 <div id="header">
   <div>
-    <h1>📊 Vista Dueño <span style="font-size:0.7rem;opacity:0.6">v2.7</span></h1>
+    <h1>📊 Nroshoy <span style="font-size:0.7rem;opacity:0.6">v2.8</span></h1>
     <div id="fecha-label"></div>
   </div>
   <button id="btn-volver" onclick="window.location.href='index.html'">← Caja</button>
@@ -316,9 +316,9 @@ function actualizarDots() {
 }
 
 function verificarPin() {
-  const pinDueno = String(pinConfig?.PIN_Dueño || '0000').padStart(4, '0');
-  const pinAdmin = String(pinConfig?.PIN_Admin || '1234').padStart(4, '0');
-  if (pinBuffer === pinDueno || pinBuffer === pinAdmin) {
+  // Una sola clave para Nroshoy
+  const pinNroshoy = String(pinConfig?.PIN_Dueño || '0000').padStart(4, '0');
+  if (pinBuffer === pinNroshoy) {
     document.getElementById('pantalla-pin').style.display = 'none';
     document.getElementById('loading').style.display = 'flex';
     cargarDatos();
