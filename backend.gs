@@ -1,6 +1,6 @@
 /**
  * LA POSTA — Backend Google Apps Script
- * backend.gs v3.7
+ * backend.gs v3.8
  *
  * API REST para la app web de punto de venta.
  * Pegá este archivo completo en el editor de Apps Script
@@ -62,6 +62,7 @@ function doPost(e) {
       case 'setFondoCaja':       return ok(setFondoCaja(body.data));
       case 'resetDatos':         return ok(resetDatos(body.data));
       case 'marcarCompraPagada': return ok(marcarCompraPagada(body.data));
+      case 'registrarPago':      return ok(registrarPago(body.data));
       case 'guardarGasto':       return ok(guardarGasto(body.data));
       case 'marcarGastoPagado':  return ok(marcarGastoPagado(body.data));
       case 'anularVenta':        return ok(anularVenta(body.data));
@@ -200,19 +201,75 @@ function getCompras() {
  * Marca una compra como pagada (cambia Estado_Pago a 'Pagado').
  * data = { fila }
  */
+// Asegura que la hoja Compras tenga la columna "Pagado" (monto abonado).
+function asegurarColPagado(sheet) {
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  let col = headers.indexOf('Pagado');
+  if (col < 0) {
+    col = headers.length;            // próxima columna libre (0-based)
+    sheet.getRange(1, col + 1).setValue('Pagado');
+  }
+  return col; // índice 0-based de la columna Pagado
+}
+
+// Marcar como pagada del todo = registrar un pago por el saldo completo.
 function marcarCompraPagada(data) {
+  return registrarPago({ fila: data.fila, todo: true });
+}
+
+/**
+ * Registra un pago (total o parcial) a una compra.
+ * data = { fila, monto } o { fila, todo:true }
+ * Devuelve { pagado, saldo, estado }.
+ */
+function registrarPago(data) {
   const lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
-    const sheet = getSheet('Compras');
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = ss.getSheetByName('Compras');
+    const colPagado = asegurarColPagado(sheet);
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const colTotal  = headers.indexOf('Costo_Total');
     const colEstado = headers.indexOf('Estado_Pago');
-    if (colEstado < 0) throw new Error('No se encontró la columna Estado_Pago');
-    sheet.getRange(data.fila, colEstado + 1).setValue('Pagado');
-    return { ok: true };
+
+    const total  = Number(sheet.getRange(data.fila, colTotal + 1).getValue()) || 0;
+    let pagado   = Number(sheet.getRange(data.fila, colPagado + 1).getValue()) || 0;
+    const saldo  = total - pagado;
+
+    let monto = data.todo ? saldo : (Number(data.monto) || 0);
+    if (monto <= 0) throw new Error('El monto del pago debe ser mayor a 0.');
+    if (monto > saldo) monto = saldo; // no se puede pagar más que el saldo
+
+    const nuevoPagado = pagado + monto;
+    sheet.getRange(data.fila, colPagado + 1).setValue(nuevoPagado);
+
+    const estado = nuevoPagado >= total - 0.001 ? 'Pagado' : (nuevoPagado > 0 ? 'Parcial' : 'Pendiente');
+    sheet.getRange(data.fila, colEstado + 1).setValue(estado);
+
+    // Historial de pagos
+    registrarHistorialPago(ss, sheet, data.fila, monto);
+
+    return { ok: true, pagado: nuevoPagado, saldo: total - nuevoPagado, estado: estado };
   } finally {
     lock.releaseLock();
   }
+}
+
+// Guarda cada abono en la hoja Pagos_Proveedores (historial).
+function registrarHistorialPago(ss, comprasSheet, fila, monto) {
+  let hoja = ss.getSheetByName('Pagos_Proveedores');
+  if (!hoja) {
+    hoja = ss.insertSheet('Pagos_Proveedores');
+    hoja.getRange(1, 1, 1, 5).setValues([['Fecha', 'Proveedor', 'Producto', 'Monto', 'Fila_Compra']]);
+    hoja.getRange(1, 1, 1, 5).setFontWeight('bold').setBackground('#d9d9d9');
+    hoja.setFrozenRows(1);
+  }
+  const headers = comprasSheet.getRange(1, 1, 1, comprasSheet.getLastColumn()).getValues()[0];
+  const prov = comprasSheet.getRange(fila, headers.indexOf('Proveedor') + 1).getValue();
+  const prod = comprasSheet.getRange(fila, headers.indexOf('Producto') + 1).getValue();
+  const hoy = Utilities.formatDate(new Date(), 'America/Argentina/Buenos_Aires', 'yyyy-MM-dd');
+  hoja.appendRow([hoy, prov, prod, monto, fila]);
 }
 
 function getAjustes() {
@@ -654,7 +711,13 @@ function guardarCompra(data) {
   lock.waitLock(30000);
   try {
     const ss = SpreadsheetApp.openById(SHEET_ID);
-    ss.getSheetByName('Compras').appendRow([
+    const compras = ss.getSheetByName('Compras');
+    const colPagado = asegurarColPagado(compras); // 0-based
+    // Pagado inicial: si se carga como Pagado, queda saldado; sino 0 (debe todo)
+    const estado = data.estadoPago || 'Pendiente';
+    const pagadoInicial = (estado === 'Pagado') ? (Number(data.costoTotal) || 0) : 0;
+
+    const fila = [
       data.fecha,
       data.proveedor,
       data.producto,
@@ -664,9 +727,14 @@ function guardarCompra(data) {
       data.costoTotal,
       data.costoUnit,
       data.medioPago,
-      data.estadoPago || 'Pagado',
+      estado,
       data.observacion || ''
-    ]);
+    ];
+    // Completar hasta la columna Pagado
+    while (fila.length < colPagado) fila.push('');
+    fila[colPagado] = pagadoInicial;
+    compras.appendRow(fila);
+
     // Sumar stock por compra
     updateStock(ss, data.producto, data.cantidad);
     // Actualizar el costo del producto con el costo unitario de esta compra
