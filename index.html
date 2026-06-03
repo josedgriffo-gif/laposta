@@ -14,6 +14,10 @@
 <style>
   /* ── Reset y base ─────────────────────────────────────────────────────── */
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  .cpin-dot { width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.3); border: 2px solid rgba(255,255,255,0.5); }
+  .cpin-dot.lleno { background: white; }
+  .cpin-key { background: rgba(255,255,255,0.15); color: white; border-radius: 12px; padding: 20px; font-size: 1.5rem; font-weight: 700; border: none; cursor: pointer; }
+  .cpin-key:active { background: rgba(255,255,255,0.3); }
   html, body { height: 100%; font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #1a1a1a; font-size: 16px; }
   button { cursor: pointer; border: none; outline: none; font-family: inherit; }
 
@@ -460,6 +464,32 @@
 </head>
 <body>
 
+<!-- Pantalla de bloqueo de la caja (PIN Caja) -->
+<div id="pantalla-caja-pin" style="position:fixed;inset:0;background:#1b5e20;color:white;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;z-index:1000">
+  <h2 style="font-size:1.5rem">🛒 La Posta — Caja</h2>
+  <div style="display:flex;gap:14px">
+    <div class="cpin-dot" id="cd0"></div>
+    <div class="cpin-dot" id="cd1"></div>
+    <div class="cpin-dot" id="cd2"></div>
+    <div class="cpin-dot" id="cd3"></div>
+  </div>
+  <div id="cpin-error" style="color:#ff8a80;font-size:0.9rem;min-height:20px"></div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:260px">
+    <button class="cpin-key" onclick="cajaPinKey('1')">1</button>
+    <button class="cpin-key" onclick="cajaPinKey('2')">2</button>
+    <button class="cpin-key" onclick="cajaPinKey('3')">3</button>
+    <button class="cpin-key" onclick="cajaPinKey('4')">4</button>
+    <button class="cpin-key" onclick="cajaPinKey('5')">5</button>
+    <button class="cpin-key" onclick="cajaPinKey('6')">6</button>
+    <button class="cpin-key" onclick="cajaPinKey('7')">7</button>
+    <button class="cpin-key" onclick="cajaPinKey('8')">8</button>
+    <button class="cpin-key" onclick="cajaPinKey('9')">9</button>
+    <button class="cpin-key" onclick="cajaPinKey('B')">⌫</button>
+    <button class="cpin-key" onclick="cajaPinKey('0')">0</button>
+    <button class="cpin-key" onclick="cajaPinKey('OK')" style="background:rgba(255,255,255,0.35)">OK</button>
+  </div>
+</div>
+
 <!-- Loading -->
 <div id="loading">
   <h2>La Posta</h2>
@@ -472,7 +502,7 @@
 
   <!-- Header -->
   <div id="header">
-    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v3.2</span></h1>
+    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v3.3</span></h1>
     <div id="header-right">
       <span id="offline-badge">SIN CONEXIÓN</span>
       <button id="btn-dueno">Nroshoy</button>
@@ -649,6 +679,53 @@ async function init() {
   document.getElementById('loading').style.display = 'none';
   monitorearConexion();
   sincronizarPendientes();
+  pedirPinCaja(); // bloquea la caja hasta ingresar el PIN
+}
+
+// ── Bloqueo de apertura de caja ──────────────────────────────────────────────
+let cajaPinBuffer = '';
+let cajaDesbloqueada = false;
+
+function pedirPinCaja() {
+  cajaDesbloqueada = false;
+  cajaPinBuffer = '';
+  actualizarDotsCaja();
+  document.getElementById('cpin-error').textContent = '';
+  document.getElementById('pantalla-caja-pin').style.display = 'flex';
+}
+
+function cajaPinKey(val) {
+  if (val === 'B') {
+    cajaPinBuffer = cajaPinBuffer.slice(0, -1);
+  } else if (val === 'OK') {
+    verificarPinCaja();
+    return;
+  } else if (cajaPinBuffer.length < 4) {
+    cajaPinBuffer += val;
+  }
+  actualizarDotsCaja();
+  if (cajaPinBuffer.length === 4) verificarPinCaja();
+}
+
+function actualizarDotsCaja() {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById(`cd${i}`).classList.toggle('lleno', i < cajaPinBuffer.length);
+  }
+}
+
+function verificarPinCaja() {
+  const pinCaja  = String(config.PIN_Caja || '4321').padStart(4, '0');
+  const pinAdmin = String(config.PIN_Admin || '1234').padStart(4, '0');
+  // Abre con el PIN de caja o con el de admin
+  if (cajaPinBuffer === pinCaja || cajaPinBuffer === pinAdmin) {
+    cajaDesbloqueada = true;
+    document.getElementById('pantalla-caja-pin').style.display = 'none';
+  } else {
+    document.getElementById('cpin-error').textContent = 'PIN incorrecto';
+    cajaPinBuffer = '';
+    actualizarDotsCaja();
+    setTimeout(() => document.getElementById('cpin-error').textContent = '', 1500);
+  }
 }
 
 async function cargarProductos() {
@@ -1207,13 +1284,8 @@ document.getElementById('btn-admin').onclick = () => {
     alert('El carrito debe estar vacío para entrar al panel.');
     return;
   }
-  pedirPin('admin', (tipo) => {
-    if (tipo === 'admin') {
-      window.location.href = 'admin.html';
-    } else {
-      alert('Necesitás el PIN de administrador para entrar acá.');
-    }
-  });
+  // Va directo: admin.html pide su propio PIN (admin o accionistas)
+  window.location.href = 'admin.html';
 };
 
 document.getElementById('btn-dueno').onclick = () => {

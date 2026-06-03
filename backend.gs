@@ -116,10 +116,17 @@ function getProductos() {
 function getConfig() {
   const sheet = getSheet('Configuracion');
   const data = sheet.getDataRange().getValues();
+  // PIN_Caja (col D) y PIN_Accionistas (col E); defaults si no existen
+  const pinCaja = (data[1][3] !== undefined && data[1][3] !== '')
+    ? String(data[1][3]).padStart(4, '0') : '4321';
+  const pinAccionistas = (data[1][4] !== undefined && data[1][4] !== '')
+    ? String(data[1][4]).padStart(4, '0') : '5678';
   return {
-    PIN_Admin:    String(data[1][0]).padStart(4, '0'),
-    PIN_Dueño:    String(data[1][1]).padStart(4, '0'),
-    Meta_Diaria:  data[1][2]
+    PIN_Admin:        String(data[1][0]).padStart(4, '0'),
+    PIN_Dueño:        String(data[1][1]).padStart(4, '0'),
+    Meta_Diaria:      data[1][2],
+    PIN_Caja:         pinCaja,
+    PIN_Accionistas:  pinAccionistas
   };
 }
 
@@ -129,10 +136,15 @@ function getConfig() {
  */
 function guardarConfig(data) {
   const sheet = getSheet('Configuracion');
-  sheet.getRange(2, 1, 1, 3).setValues([[
+  // Asegura encabezados de las columnas nuevas
+  sheet.getRange(1, 4).setValue('PIN_Caja');
+  sheet.getRange(1, 5).setValue('PIN_Accionistas');
+  sheet.getRange(2, 1, 1, 5).setValues([[
     String(data.pinAdmin).padStart(4, '0'),
     String(data.pinDueno).padStart(4, '0'),
-    Number(data.metaDiaria) || 1500000
+    Number(data.metaDiaria) || 1500000,
+    String(data.pinCaja || '4321').padStart(4, '0'),
+    String(data.pinAccionistas || '5678').padStart(4, '0')
   ]]);
   return getConfig();
 }
