@@ -261,6 +261,16 @@
   .msg-ok.visible { display: block; }
   .msg-error { background: #ffebee; color: #c62828; border-radius: 8px; padding: 10px 14px; font-weight: 600; font-size: 0.9rem; display: none; }
   .msg-error.visible { display: block; }
+  .acc-modo.activo-modo { background: #2e7d32; color: white; border-color: #2e7d32; }
+  /* Estado de resultados */
+  .er-tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .er-tabla th, .er-tabla td { padding: 8px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid #f0f0f0; }
+  .er-tabla th:first-child, .er-tabla td:first-child { text-align: left; position: sticky; left: 0; background: white; font-weight: 600; }
+  .er-tabla thead th { background: #1b5e20; color: white; text-align: right; }
+  .er-tabla thead th:first-child { background: #1b5e20; }
+  .er-fila-cm { background: #f1f8e9; font-weight: 700; }
+  .er-fila-util { background: #e8f5e9; font-weight: 800; }
+  .er-neg { color: #c62828; }
 </style>
 <!-- Librería para generar archivos Excel (.xlsx) en el navegador -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -274,7 +284,7 @@
 
 <div id="app">
   <div id="header">
-    <h1>⚙ Panel Admin <span id="version-badge">v3.0</span></h1>
+    <h1>⚙ Panel Admin <span id="version-badge">v3.1</span></h1>
     <button id="btn-volver" onclick="window.location.href='index.html'">← Volver a caja</button>
   </div>
 
@@ -286,6 +296,7 @@
     <button class="tab" data-tab="stock">Ajuste stock</button>
     <button class="tab" data-tab="cierre">Cierre de caja</button>
     <button class="tab" data-tab="informes">Informes</button>
+    <button class="tab" data-tab="accionistas">Accionistas</button>
     <button class="tab" data-tab="exportar">Exportar</button>
     <button class="tab" data-tab="config">Configuración</button>
   </div>
@@ -720,6 +731,34 @@
       <div id="informe-resultado"></div>
     </div>
 
+    <!-- ── TAB: ACCIONISTAS ───────────────────────────────────────────── -->
+    <div id="tab-accionistas" style="display:none">
+      <div class="card">
+        <h2>Estado de resultados</h2>
+        <div style="margin-bottom:12px">
+          <div style="font-size:0.85rem;font-weight:600;color:#555;margin-bottom:6px">Comparar por:</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-secondary btn-sm acc-modo activo-modo" data-modo="semanal" onclick="setModoAcc('semanal')">Semana a semana</button>
+            <button class="btn-secondary btn-sm acc-modo" data-modo="mensual" onclick="setModoAcc('mensual')">Mes a mes</button>
+            <button class="btn-secondary btn-sm acc-modo" data-modo="anual" onclick="setModoAcc('anual')">Año a año</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="btn-secondary btn-sm" onclick="accRango('mes')">Este mes</button>
+          <button class="btn-secondary btn-sm" onclick="accRango('3meses')">Últimos 3 meses</button>
+          <button class="btn-secondary btn-sm" onclick="accRango('anio')">Este año</button>
+          <button class="btn-secondary btn-sm" onclick="accRango('todo')">Todo</button>
+        </div>
+        <div class="form-grid">
+          <div class="field"><label>Desde</label><input type="date" id="acc-desde"></div>
+          <div class="field"><label>Hasta</label><input type="date" id="acc-hasta"></div>
+        </div>
+        <button class="btn-primary" onclick="generarAccionistas()" style="margin-top:8px">Generar</button>
+      </div>
+
+      <div id="accionistas-resultado"></div>
+    </div>
+
     <!-- ── TAB: EXPORTAR ──────────────────────────────────────────────── -->
     <div id="tab-exportar" style="display:none">
       <div class="card">
@@ -966,8 +1005,99 @@ document.querySelectorAll('.tab').forEach(tab => {
     if (nombre === 'gastos') cargarGastos();
     if (nombre === 'informes') initInformes();
     if (nombre === 'exportar') initExportar();
+    if (nombre === 'accionistas') initAccionistas();
   };
 });
+
+// ── Accionistas (estado de resultados comparativo) ─────────────────────────
+let modoAcc = 'mensual';
+
+function initAccionistas() {
+  if (!document.getElementById('acc-desde').value) { accRango('anio'); }
+}
+
+function setModoAcc(modo) {
+  modoAcc = modo;
+  document.querySelectorAll('.acc-modo').forEach(b => b.classList.toggle('activo-modo', b.dataset.modo === modo));
+}
+
+function accRango(tipo) {
+  const hoy = new Date();
+  let desde, hasta;
+  if (tipo === 'mes') {
+    desde = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 1)); hasta = ymd(hoy);
+  } else if (tipo === '3meses') {
+    desde = ymd(new Date(hoy.getFullYear(), hoy.getMonth() - 2, 1)); hasta = ymd(hoy);
+  } else if (tipo === 'anio') {
+    desde = ymd(new Date(hoy.getFullYear(), 0, 1)); hasta = ymd(hoy);
+  } else if (tipo === 'todo') {
+    desde = '2000-01-01'; hasta = '2100-12-31';
+  }
+  document.getElementById('acc-desde').value = desde;
+  document.getElementById('acc-hasta').value = hasta;
+}
+
+async function generarAccionistas() {
+  const desde = document.getElementById('acc-desde').value;
+  const hasta = document.getElementById('acc-hasta').value;
+  const cont = document.getElementById('accionistas-resultado');
+  if (!desde || !hasta) { alert('Elegí las fechas'); return; }
+
+  cont.innerHTML = '<div class="card" style="text-align:center;color:#999;padding:30px">Calculando...</div>';
+  try {
+    const periodos = await apiGet(`getAccionistas&desde=${desde}&hasta=${hasta}&modalidad=${modoAcc}`);
+    renderAccionistas(periodos);
+  } catch(e) {
+    cont.innerHTML = `<div class="card" style="color:#c62828;padding:20px">Error: ${e.message}</div>`;
+  }
+}
+
+function renderAccionistas(periodos) {
+  const cont = document.getElementById('accionistas-resultado');
+  if (!periodos || periodos.length === 0) {
+    cont.innerHTML = '<div class="card" style="text-align:center;color:#999;padding:30px">Sin datos en el período elegido</div>';
+    return;
+  }
+
+  // Totales de todas las columnas
+  const tot = periodos.reduce((t, p) => ({
+    ventas: t.ventas + p.ventas, costoMP: t.costoMP + p.costoMP,
+    contribMarginal: t.contribMarginal + p.contribMarginal,
+    gastos: t.gastos + p.gastos, utilidadNeta: t.utilidadNeta + p.utilidadNeta
+  }), { ventas:0, costoMP:0, contribMarginal:0, gastos:0, utilidadNeta:0 });
+
+  const celda = (v, neg) => `<td class="${v < 0 ? 'er-neg' : ''}">${formatPesos(v)}</td>`;
+  const fila = (concepto, key, clase) => `
+    <tr class="${clase || ''}">
+      <td>${concepto}</td>
+      ${periodos.map(p => celda(p[key])).join('')}
+      <td style="border-left:2px solid #ddd">${formatPesos(tot[key])}</td>
+    </tr>`;
+
+  const html = `
+    <div class="card">
+      <h2>Estado de resultados — ${modoAcc === 'semanal' ? 'por semana' : modoAcc === 'anual' ? 'por año' : 'por mes'}</h2>
+      <div class="tabla-scroll">
+        <table class="er-tabla">
+          <thead>
+            <tr>
+              <th>Concepto</th>
+              ${periodos.map(p => `<th>${p.label}</th>`).join('')}
+              <th style="border-left:2px solid #4a8">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${fila('Ventas', 'ventas')}
+            ${fila('(−) Costo MP', 'costoMP')}
+            ${fila('(=) Contribución marginal', 'contribMarginal', 'er-fila-cm')}
+            ${fila('(−) Gastos', 'gastos')}
+            ${fila('(=) Utilidad neta', 'utilidadNeta', 'er-fila-util')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+  cont.innerHTML = html;
+}
 
 // ── Exportar a Excel ───────────────────────────────────────────────────────
 function initExportar() {

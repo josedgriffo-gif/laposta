@@ -32,6 +32,7 @@ function doGet(e) {
       case 'getGastos':       return ok(getGastos());
       case 'getInforme':      return ok(getInforme(e.parameter.desde, e.parameter.hasta));
       case 'getDatosExport':  return ok(getDatosExport(e.parameter.desde, e.parameter.hasta));
+      case 'getAccionistas':  return ok(getAccionistas(e.parameter.desde, e.parameter.hasta, e.parameter.modalidad));
       default:                return ok({ status: 'La Posta API activa' });
     }
   } catch (err) {
@@ -271,6 +272,76 @@ function getInforme(desde, hasta) {
     totalGastos, gastosPorCategoria,
     resultadoNeto
   };
+}
+
+/**
+ * Estado de resultados comparativo por período.
+ * Devuelve un array de períodos, cada uno con sus métricas.
+ * modalidad = 'semanal' | 'mensual' | 'anual'
+ */
+function getAccionistas(desde, hasta, modalidad) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const enRango = (f) => {
+    const fecha = formatearFecha(f);
+    return fecha >= desde && fecha <= hasta;
+  };
+
+  // Clave y etiqueta del período según modalidad
+  const claveDe = (fechaStr) => {
+    const f = formatearFecha(fechaStr);
+    if (modalidad === 'anual') return f.substring(0, 4);
+    if (modalidad === 'semanal') {
+      // Lunes de esa semana
+      const d = new Date(f + 'T12:00:00');
+      const day = d.getDay();              // 0 dom .. 6 sab
+      const diff = (day === 0 ? -6 : 1 - day);
+      d.setDate(d.getDate() + diff);
+      return Utilities.formatDate(d, 'America/Argentina/Buenos_Aires', 'yyyy-MM-dd');
+    }
+    return f.substring(0, 7);              // mensual: YYYY-MM
+  };
+
+  const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const labelDe = (clave) => {
+    if (modalidad === 'anual') return clave;
+    if (modalidad === 'semanal') {
+      const p = clave.split('-');
+      return `Sem ${p[2]}/${p[1]}`;
+    }
+    const p = clave.split('-');
+    return `${meses[parseInt(p[1]) - 1]} ${p[0]}`;
+  };
+
+  // Acumular ventas y costo por período
+  const acum = {};
+  const get = (k) => { if (!acum[k]) acum[k] = { ventas:0, costoMP:0, gastos:0 }; return acum[k]; };
+
+  sheetToObjects(ss.getSheetByName('BD_Ventas'))
+    .filter(v => enRango(v['Fecha']) && v['Estado'] !== 'CANCELADA')
+    .forEach(v => {
+      const a = get(claveDe(v['Fecha']));
+      a.ventas  += Number(v['Total Venta']) || 0;
+      a.costoMP += Number(v['Costo Total']) || 0;
+    });
+
+  getGastos().filter(g => enRango(g['Fecha'])).forEach(g => {
+    get(claveDe(g['Fecha'])).gastos += Number(g['Monto']) || 0;
+  });
+
+  // Armar array ordenado por clave de período
+  return Object.keys(acum).sort().map(k => {
+    const a = acum[k];
+    const cm = a.ventas - a.costoMP;
+    return {
+      periodo: k,
+      label: labelDe(k),
+      ventas: a.ventas,
+      costoMP: a.costoMP,
+      contribMarginal: cm,
+      gastos: a.gastos,
+      utilidadNeta: cm - a.gastos
+    };
+  });
 }
 
 /**
