@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>La Posta — Ayuda</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1b5e20">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #1a1a1a; font-size: 16px; line-height: 1.55; }
+  #header {
+    background: #1b5e20; color: white; padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 10;
+  }
+  #header h1 { font-size: 1.2rem; font-weight: 700; }
+  #btn-volver {
+    background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px; padding: 8px 14px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  }
+  #wrap { max-width: 800px; margin: 0 auto; padding: 16px; }
+
+  /* Índice */
+  #indice { background: white; border-radius: 12px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  #indice h2 { font-size: 0.85rem; text-transform: uppercase; color: #888; letter-spacing: 0.5px; margin-bottom: 10px; }
+  #indice a { display: block; padding: 7px 0; color: #2e7d32; text-decoration: none; font-weight: 600; border-bottom: 1px solid #f0f0f0; }
+  #indice a:last-child { border-bottom: none; }
+  #indice a:active { color: #1b5e20; }
+
+  .seccion { background: white; border-radius: 12px; padding: 18px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); scroll-margin-top: 70px; }
+  .seccion h2 { font-size: 1.15rem; color: #1b5e20; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #e8f5e9; }
+  .seccion h3 { font-size: 1rem; color: #2e7d32; margin: 16px 0 6px; }
+  .seccion p { margin-bottom: 10px; }
+  .seccion ol, .seccion ul { margin: 0 0 12px 22px; }
+  .seccion li { margin-bottom: 6px; }
+  .nota { background: #fff8e1; border-left: 4px solid #ffb300; border-radius: 6px; padding: 10px 14px; margin: 10px 0; font-size: 0.92rem; }
+  .importante { background: #ffebee; border-left: 4px solid #ef5350; border-radius: 6px; padding: 10px 14px; margin: 10px 0; font-size: 0.92rem; }
+  .ok { background: #e8f5e9; border-left: 4px solid #66bb6a; border-radius: 6px; padding: 10px 14px; margin: 10px 0; font-size: 0.92rem; }
+  code { background: #f0f0f0; border-radius: 4px; padding: 1px 6px; font-size: 0.9em; }
+  .chip { display: inline-block; background: #e8f5e9; color: #1b5e20; border-radius: 6px; padding: 2px 8px; font-size: 0.85rem; font-weight: 600; }
+  .top { text-align: right; }
+  .top a { color: #aaa; text-decoration: none; font-size: 0.8rem; }
+  table.t { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 10px 0; }
+  table.t th, table.t td { border: 1px solid #eee; padding: 8px 10px; text-align: left; }
+  table.t th { background: #f5f5f5; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>📖 La Posta — Ayuda</h1>
+  <button id="btn-volver" onclick="window.location.href='admin.html'">← Volver</button>
+</div>
+
+<div id="wrap">
+
+  <div id="indice">
+    <h2>Contenido</h2>
+    <a href="#inicio">1. Primer inicio (configuración una vez)</a>
+    <a href="#niveles">2. Niveles de acceso y PINs</a>
+    <a href="#caja">3. Caja — Cómo facturar</a>
+    <a href="#productos">4. Productos y ofertas</a>
+    <a href="#compras">5. Compras y stock</a>
+    <a href="#ctacte">6. Cuenta corriente (lo que debemos)</a>
+    <a href="#gastos">7. Gastos</a>
+    <a href="#anular">8. Anular una venta</a>
+    <a href="#cierre">9. Cierre de caja</a>
+    <a href="#informes">10. Informes y Accionistas</a>
+    <a href="#exportar">11. Exportar a Excel</a>
+    <a href="#nroshoy">12. Nroshoy (resumen del día)</a>
+    <a href="#tablet">13. Tablet a pantalla completa y prestarla</a>
+    <a href="#reset">14. Reiniciar datos de prueba</a>
+  </div>
+
+  <div class="seccion" id="inicio">
+    <h2>1. Primer inicio (configuración una vez)</h2>
+    <p>Esto ya está hecho. Lo dejamos documentado por si hay que rehacerlo o entender cómo funciona por dentro.</p>
+    <ol>
+      <li>El sistema usa un <strong>Google Sheet</strong> ("La Posta — Sistema") como base de datos.</li>
+      <li>Un <strong>Google Apps Script</strong> (el "backend") conecta la app con el Sheet.</li>
+      <li>La app son páginas web publicadas en <strong>GitHub Pages</strong>.</li>
+    </ol>
+    <h3>Si actualizo el backend</h3>
+    <p>Cuando cambia la lógica del servidor, hay que copiar el archivo <code>backend.gs</code> y pegarlo en Apps Script:</p>
+    <ol>
+      <li>Abrir <code>backend.gs</code> con el Bloc de notas → Ctrl+A → Ctrl+C</li>
+      <li>En Apps Script: Ctrl+A → borrar → Ctrl+V → Ctrl+S</li>
+      <li>Implementar → Administrar implementaciones → lápiz ✏ → Nueva versión → Implementar</li>
+    </ol>
+    <div class="nota"><strong>Regla simple:</strong> si solo cambió la app (HTML), alcanza con recargar (Ctrl+F5). Si cambió el backend, hay que copiar/pegar en Apps Script.</div>
+    <div class="top"><a href="#indice">↑ volver al índice</a></div>
+  </div>
+
+  <div class="seccion" id="niveles">
+    <h2>2. Niveles de acceso y PINs</h2>
+    <table class="t">
+      <tr><th>Nivel</th><th>Qué ve</th></tr>
+      <tr><td><span class="chip">Caja</span></td><td>Solo facturar. No ve costos ni ganancias.</td></tr>
+      <tr><td><span class="chip">Nroshoy</span></td><td>Resumen del día (ventas, meta, medios de pago).</td></tr>
+      <tr><td><span class="chip">Accionistas</span></td><td>Informes + Estado de resultados (rentabilidad).</td></tr>
+      <tr><td><span class="chip">Admin</span></td><td>Todo: gestión completa + informes + accionistas.</td></tr>
+    </table>
+    <p>Los 4 PINs se cambian en <strong>Admin → Configuración</strong>. Deben ser de 4 dígitos y distintos entre sí.</p>
+    <div class="importante"><strong>Importante:</strong> cambiá los PINs por defecto antes de usar en serio. El <strong>PIN Admin abre todo</strong> (también la caja), es tu llave maestra.</div>
+    <div class="top"><a href="#indice">↑ volver al índice</a></div>
+  </div>
+
+  <div class="seccion" id="caja">
+    <h2>3. Caja — Cómo facturar</h2>
+    <ol>
+      <li>Al abrir la app, ingresá el <strong>PIN de Caja</strong>.</li>
+      <li>Tocá una <strong>categoría</strong> (o usá el <strong>buscador</strong> de arriba) y después el producto.</li>
+      <li><strong>Productos por unidad:</strong> se agregan de a uno, ajustás con los botones <strong>+ / −</strong> en el carrito.</li>
+      <li><strong>Productos por peso (kg):</strong> se abre un teclado. Ingresá los <strong>gramos</strong> (ej: 500 = medio kilo, 1100 = 1,1 kg) o usá los botones rápidos. Sin punto.</li>
+      <li>Cuando está todo, tocá <strong>Cobrar</strong>.</li>
+      <li>Elegí el <strong>medio de pago</strong>:
+        <ul>
+          <li><strong>Efectivo:</strong> podés ingresar lo recibido y calcula el vuelto. Si ponés menos del total, no deja confirmar.</li>
+          <li><strong>Mixto:</strong> repartís el total entre varios medios. No deja confirmar hasta cubrir el total.</li>
+        </ul>
+      </li>
+      <li>Tocá <strong>Confirmar</strong>. Aparece el ticket. Listo.</li>
+    </ol>
+    <div class="ok"><strong>Sin internet:</strong> la venta se guarda igual en la tablet y se sincroniza sola cuando vuelve el wifi. No se pierde nada.</div>
+    <div class="nota">Las ofertas por cantidad se aplican <strong>automáticamente</strong> cuando se supera la cantidad mínima.</div>
+    <div class="top"><a href="#indice">↑ volver al índice</a></div>
+  </div>
+
+  <div class="seccion" id="productos">
+    <h2>4. Productos y ofertas</h2>
+    <p>En <strong>Admin → Productos</strong>:</p>
+    <ul>
+      <li><strong>Agregar:</strong> completá nombre, categoría, unidad y precio. El producto entra solo al stock (en 0).</li>
+      <li><strong>Unidad:</strong> escribí la que quieras (un, kg, caja, litros, bidón...). Las usadas aparecen como sugerencia.</li>
+      <li><strong>Editar:</strong> botón "Editar" en cada fila.</li>
+      <li><strong>Activar/Desactivar:</strong> un producto inactivo no aparece en la caja.</li>
+      <li><strong>Ordenar/Buscar:</strong> tocá los títulos de columna para ordenar; usá el buscador y los filtros.</li>
+    </ul>
+    <h3>Ofertas</h3>
+    <p>Cargá <strong>Precio oferta</strong> + <strong>Cantidad mínima</strong> (y fecha fin opcional). Cuando el cliente lleva esa cantidad o más, la caja aplica el precio de oferta sola.</p>
+    <div class="top"><a href="#indice">↑ volver al índice</a></div>
+  </div>
+
+  <div class="seccion" id="compras">
+    <h2>5. Compras y stock</h2>
+    <p>En <strong>Admin → Compras</strong> registrás lo que le comprás a un proveedor. Al guardar:</p>
+    <ul>
+      <li>El <strong>stock sube</strong> automáticamente.</li>
+      <li>El <strong>costo del producto se actualiza</strong> con el costo de esta compra (para que el margen sea real).</li>
+    </ul>
+    <h3>Ajuste de stock</h3>
+    <p>En <strong>Admin → Ajuste stock</strong> corregís el inventario:</p>
+    <ul>
+      <li><strong>Entrada / Corrección:</strong> suma stock.</li>
+      <li><strong>Salida / Merma:</strong> resta stock (se guarda en negativo solo).</li>
+    </ul>
+    <div class="nota">El stock se ve en la columna <strong>Stock</strong> de la pestaña Productos: verde (positivo), naranja (0), rojo (negativo). El stock negativo está permitido, solo avisa.</div>
+    <div class="top"><a href="#indice">↑ volver al índice</a></div>
+  </div>
+
+  <div class="seccion" id="ctacte">
+    <h2>6. Cuenta corriente (lo que debemos)</h2>
+    <p>Cuando cargás una compra con estado <strong>Pendiente</strong> o <strong>Parcial</strong>, aparece en <strong>Admin → Cuenta corriente</strong>.</p>
+    <ul>
+      <li>Muestra, por proveedor, cuánto le debés y el detalle de cada compra impaga.</li>
+      <li>Arriba, el total general adeudado.</li>
+      <li>Botón <strong>"Pagar"</strong> en cada compra → la marca pagada y la saca de la cuenta corriente.</li>
+    </ul>
+    <div class="top"><a href="#indice">↑ volver al índice</a></div>
+  </div>
+
+  <div class="seccion" id="gastos">
+    <h2>7. Gastos</h2>
+    <p>En <strong>Admin → Gastos</strong> registrás los gastos que no son mercadería: sueldos, luz, agua, gas, alquiler, impuestos, etc.</p>
+    <ul>
+      <li>La categoría es libre con sugerencias (escribí nuevas cuando haga falta).</li>
+      <li>Estado Pagado / Pendiente.</li>
+      <li>Estos gastos se descuentan en los <strong>Informes</strong> y en <strong>Accionistas</strong> para calcular la ganancia real.</li>
+    </ul>
+    <div class="top"><a href="#indice">↑ volver al índice</a></div>
+  </div>
+
+  <div class="seccion" id="anular">
+    <h2>8. Anular una venta</h2>
+    <p>En <strong>Admin → Anular venta</strong>:</p>
+    <ol>
+      <li>Elegí la fecha → <strong>"Ver ventas del día"</strong>.</li>
+      <li>Encontrá la venta y tocá <strong>"Anular"</strong> → confirmá dos veces.</li>
+    </ol>
+    <p>Al anular: la venta queda <strong>CANCELADA</strong> (no se borra, queda el registro), el <strong>stock vuelve</strong> al inventario y el día se recalcula.</p>
+    <div class="top"><a href="#indice">↑ volver al índice</a></div>
+  </div>
+
+  <div class="seccion" id="cierre">
+    <h2>9. Cierre de caja</h2>
+    <p>En <strong>Admin → Cierre de caja</strong>:</p>
+    <ol>
+      <li><strong>Apertura:</strong> al empezar el día, cargá el <strong>fondo de caja inicial</strong> (con cuánto efectivo arrancás).</li>
+      <li>Durante el día ves el <strong>resumen</strong>: total, margen, tickets, desglose por medio de pago.</li>
+      <li>Al cerrar, ingresás el <strong>efectivo real contado</strong> y el sistema te dice si la caja cuadra (esperado = fondo + ventas en efectivo).</li>
+    </ol>
+    <div class="top"><a href="#indice">↑ volver al índice</a></div>
+  </div>
+
+  <div class="seccion" id="informes">
+    <h2>10. Informes y Accionistas</h2>
+    <h3>Informes</h3>
+    <p>Elegís un período (hoy, semana, mes...) y ves: ventas, costo, margen, gastos, <strong>resultado neto</strong>, ranking de productos, ventas por categoría y gastos por categoría.</p>
+    <h3>Accionistas (Estado de resultados)</h3>
+    <p>Comparativo período contra período. Elegís <strong>semana a semana</strong>, <strong>mes a mes</strong> o <strong>año a año</strong>, y muestra en columnas:</p>
+    <ul>
+      <li>Ventas → menos Costo MP → <strong>Contribución marginal</strong> → menos Gastos → <strong>Utilidad neta</strong>.</li>
+    </ul>
+    <div class="nota">Estas dos pestañas las ven solo <strong>Admin</strong> y <strong>Accionistas</strong>, nunca la cajera.</div>
+    <div class="top"><a href="#indice">↑ volver al índice</a></div>
+  </div>
+
+  <div class="seccion" id="exportar">
+    <h2>11. Exportar a Excel</h2>
+    <p>En <strong>Admin → Exportar</strong> bajás los datos a un archivo Excel local (no toca el sistema):</p>
+    <ol>
+      <li>Marcá qué querés: productos, ventas, compras, gastos, stock, ajustes.</li>
+      <li>Elegí el período.</li>
+      <li>Tocá <strong>Descargar Excel</strong> → un archivo con una hoja por cada cosa.</li>
+    </ol>
+    <p>Ideal para armar tablas dinámicas y análisis a tu gusto en tu propia PC.</p>
+    <div class="top"><a href="#indice">↑ volver al índice</a></div>
+  </div>
+
+  <div class="seccion" id="nroshoy">
+    <h2>12. Nroshoy (resumen del día)</h2>
+    <p>Desde la caja, botón <strong>Nroshoy</strong> (o el link directo). Pide el PIN Nroshoy y muestra:</p>
+    <ul>
+      <li>Barra de progreso del día contra la meta.</li>
+      <li>Desglose por medio de pago.</li>
+      <li>Productos del día por ingreso.</li>
+    </ul>
+    <p>Se actualiza solo y sirve para compartir con socios sin darles acceso a la gestión.</p>
+    <div class="top"><a href="#indice">↑ volver al índice</a></div>
+  </div>
+
+  <div class="seccion" id="tablet">
+    <h2>13. Tablet a pantalla completa y prestarla</h2>
+    <h3>Pantalla completa</h3>
+    <ol>
+      <li>Abrí la app en Chrome → menú (3 puntitos) → <strong>"Agregar a pantalla de inicio"</strong>.</li>
+      <li>Abrí la app desde el <strong>ícono "LP"</strong> que aparece. Se ve sin la barra del navegador.</li>
+    </ol>
+    <h3>Prestar la tablet sin exponer tus datos</h3>
+    <ul>
+      <li>Creá un <strong>usuario aparte</strong> en Android (Ajustes → Usuarios) solo para el negocio.</li>
+      <li>En ese usuario, no agregues tus cuentas de Google.</li>
+      <li>Usá <strong>"Fijar pantalla"</strong> de Android para bloquear la tablet en la app.</li>
+      <li>Tu usuario personal queda protegido con tu PIN/huella.</li>
+    </ul>
+    <div class="top"><a href="#indice">↑ volver al índice</a></div>
+  </div>
+
+  <div class="seccion" id="reset">
+    <h2>14. Reiniciar datos de prueba</h2>
+    <p>En <strong>Admin → Configuración → "Reiniciar datos de prueba"</strong>. Borra todas las ventas, compras, gastos y ajustes, y pone el stock en cero. <strong>Conserva</strong> los productos y la configuración.</p>
+    <div class="importante">Usalo solo cuando termines de probar, para arrancar de cero en producción. Pide confirmación.</div>
+    <div class="top"><a href="#indice">↑ volver al índice</a></div>
+  </div>
+
+  <p style="text-align:center;color:#bbb;font-size:0.8rem;padding:16px 0">La Posta — Sistema de punto de venta · <span id="ver"></span></p>
+
+</div>
+
+<script>document.getElementById('ver').textContent = 'v3.4';</script>
+</body>
+</html>
