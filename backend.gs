@@ -1,6 +1,6 @@
 /**
  * LA POSTA — Backend Google Apps Script
- * backend.gs v1.0
+ * backend.gs v3.5
  *
  * API REST para la app web de punto de venta.
  * Pegá este archivo completo en el editor de Apps Script
@@ -153,9 +153,22 @@ function guardarConfig(data) {
 
 function getVentasHoy() {
   const hoy = fechaHoy();
-  const ventas  = sheetToObjects(getSheet('BD_Ventas')).filter(v => v['Fecha'] === hoy);
-  const detalle = sheetToObjects(getSheet('Detalle_Ventas')).filter(d => d['Fecha'] === hoy);
+  const ventas  = sheetToObjects(getSheet('BD_Ventas'))
+    .filter(v => formatearFecha(v['Fecha']) === hoy && v['Estado'] !== 'CANCELADA');
+  // Excluir del detalle los tickets de ventas anuladas
+  const cancelados = ticketsCancelados();
+  const detalle = sheetToObjects(getSheet('Detalle_Ventas'))
+    .filter(d => formatearFecha(d['Fecha']) === hoy && !cancelados.has(String(d['Ticket'])));
   return { ventas, detalle };
+}
+
+// Conjunto de tickets de ventas anuladas (para excluir su detalle de los rankings)
+function ticketsCancelados() {
+  const set = {};
+  sheetToObjects(getSheet('BD_Ventas')).forEach(v => {
+    if (v['Estado'] === 'CANCELADA') set[String(v['Ticket'])] = true;
+  });
+  return { has: (t) => set[t] === true };
 }
 
 function getResumenHoy() {
@@ -237,8 +250,10 @@ function getInforme(desde, hasta) {
     otro:          ventas.reduce((s, v) => s + (Number(v['Otro']) || 0), 0)
   };
 
-  // ── Detalle: ranking de productos y por categoría ──
-  const detalle = sheetToObjects(ss.getSheetByName('Detalle_Ventas')).filter(d => enRango(d['Fecha']));
+  // ── Detalle: ranking de productos y por categoría (excluye anuladas) ──
+  const cancelados = ticketsCancelados();
+  const detalle = sheetToObjects(ss.getSheetByName('Detalle_Ventas'))
+    .filter(d => enRango(d['Fecha']) && !cancelados.has(String(d['Ticket'])));
 
   const prodMap = {};
   const catMap = {};
