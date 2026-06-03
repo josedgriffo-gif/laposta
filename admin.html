@@ -267,6 +267,18 @@
   .msg-error { background: #ffebee; color: #c62828; border-radius: 8px; padding: 10px 14px; font-weight: 600; font-size: 0.9rem; display: none; }
   .msg-error.visible { display: block; }
   .acc-modo.activo-modo { background: #2e7d32; color: white; border-color: #2e7d32; }
+  /* Filas de claves de acceso */
+  .pin-row { display: flex; align-items: center; gap: 14px; background: #fafafa; border: 1px solid #eee; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .pin-info { flex: 1; }
+  .pin-nombre { font-size: 1.05rem; font-weight: 700; color: #333; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .pin-tag { color: white; font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 10px; letter-spacing: 0.5px; }
+  .pin-desc { font-size: 0.85rem; color: #777; margin-top: 3px; }
+  .pin-input { width: 110px; flex-shrink: 0; padding: 12px; border: 2px solid #ddd; border-radius: 8px; font-size: 1.3rem; font-weight: 700; text-align: center; letter-spacing: 4px; }
+  .pin-input:focus { border-color: #2e7d32; outline: none; }
+  @media (max-width: 560px) {
+    .pin-row { flex-direction: column; align-items: stretch; }
+    .pin-input { width: 100%; }
+  }
   .apin-dot { width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.3); border: 2px solid rgba(255,255,255,0.5); }
   .apin-dot.lleno { background: white; }
   .apin-key { background: rgba(255,255,255,0.15); color: white; border-radius: 12px; padding: 20px; font-size: 1.5rem; font-weight: 700; border: none; cursor: pointer; }
@@ -320,7 +332,7 @@
 
 <div id="app" style="display:none">
   <div id="header">
-    <h1>⚙ Panel Admin <span id="version-badge">v3.5</span></h1>
+    <h1>⚙ Panel Admin <span id="version-badge">v3.6</span></h1>
     <div style="display:flex;gap:8px">
       <button id="btn-volver" onclick="window.location.href='ayuda.html'" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:8px 16px;font-size:0.9rem;font-weight:600">📖 Ayuda</button>
       <button id="btn-volver" onclick="window.location.href='index.html'">← Volver a caja</button>
@@ -856,34 +868,60 @@
     <!-- ── TAB: CONFIGURACIÓN ─────────────────────────────────────────── -->
     <div id="tab-config" style="display:none">
       <div class="card">
-        <h2>PINs de acceso</h2>
-        <div class="form-grid">
-          <div class="field">
-            <label>PIN Admin (4 dígitos)</label>
-            <input type="number" id="cfg-pin-admin" placeholder="1234" maxlength="4">
+        <h2>Claves de acceso</h2>
+        <p style="font-size:0.9rem;color:#555;margin-bottom:14px;line-height:1.5">
+          Cada nivel tiene su clave. La <strong>Admin</strong> es la <strong>llave maestra</strong>: abre todo.
+          Las demás dan acceso solo a su parte. Ordenadas de mayor a menor permiso.
+        </p>
+
+        <!-- ADMIN (madre) -->
+        <div class="pin-row" style="border-left:5px solid #1b5e20">
+          <div class="pin-info">
+            <div class="pin-nombre">🔑 Admin <span class="pin-tag" style="background:#1b5e20">LLAVE MAESTRA</span></div>
+            <div class="pin-desc">Abre <strong>todo</strong> el sistema, incluida la caja. Es tuya, no la compartas.</div>
           </div>
-          <div class="field">
-            <label>PIN Nroshoy (4 dígitos)</label>
-            <input type="number" id="cfg-pin-dueno" placeholder="0000" maxlength="4">
-          </div>
-          <div class="field">
-            <label>PIN Caja (para facturar)</label>
-            <input type="number" id="cfg-pin-caja" placeholder="4321" maxlength="4">
-          </div>
-          <div class="field">
-            <label>PIN Accionistas (rentabilidad)</label>
-            <input type="number" id="cfg-pin-accionistas" placeholder="5678" maxlength="4">
-          </div>
+          <input type="number" id="cfg-pin-admin" placeholder="1234" class="pin-input">
         </div>
-        <div class="form-grid cols1" style="margin-top:12px">
-          <div class="field">
-            <label>Meta diaria ($)</label>
-            <input type="number" id="cfg-meta" placeholder="1500000" min="0">
+
+        <!-- ACCIONISTAS -->
+        <div class="pin-row" style="border-left:5px solid #6a1b9a">
+          <div class="pin-info">
+            <div class="pin-nombre">📊 Accionistas</div>
+            <div class="pin-desc">Solo <strong>Informes</strong> y <strong>Estado de resultados</strong> (rentabilidad). Para los socios.</div>
           </div>
+          <input type="number" id="cfg-pin-accionistas" placeholder="5678" class="pin-input">
         </div>
+
+        <!-- NROSHOY -->
+        <div class="pin-row" style="border-left:5px solid #1565c0">
+          <div class="pin-info">
+            <div class="pin-nombre">📈 Nroshoy</div>
+            <div class="pin-desc">Solo el <strong>resumen del día</strong> (ventas, meta, medios de pago). Para el encargado.</div>
+          </div>
+          <input type="number" id="cfg-pin-dueno" placeholder="0000" class="pin-input">
+        </div>
+
+        <!-- CAJA -->
+        <div class="pin-row" style="border-left:5px solid #2e7d32">
+          <div class="pin-info">
+            <div class="pin-nombre">🛒 Caja</div>
+            <div class="pin-desc">Solo <strong>facturar</strong>. No ve costos ni ganancias. Para la cajera.</div>
+          </div>
+          <input type="number" id="cfg-pin-caja" placeholder="4321" class="pin-input">
+        </div>
+
+        <div class="nota" style="background:#fff8e1;border-left:4px solid #ffb300;border-radius:6px;padding:10px 14px;margin:12px 0;font-size:0.88rem">
+          Las 4 claves deben ser de 4 dígitos y <strong>distintas entre sí</strong>.
+        </div>
+
+        <div class="field" style="margin-top:8px">
+          <label>Meta diaria de ventas ($)</label>
+          <input type="number" id="cfg-meta" placeholder="1500000" min="0">
+        </div>
+
         <div id="msg-config-ok" class="msg-ok">Configuración guardada</div>
         <div id="msg-config-error" class="msg-error"></div>
-        <button class="btn-primary" onclick="guardarConfig()" style="margin-top:8px">Guardar configuración</button>
+        <button class="btn-primary" onclick="guardarConfig()" style="margin-top:10px">Guardar configuración</button>
       </div>
 
       <!-- Zona peligrosa: reset de datos -->
