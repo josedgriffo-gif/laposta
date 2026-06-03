@@ -29,6 +29,7 @@ function doGet(e) {
       case 'getFondoCaja':    return ok(getFondoCaja(e.parameter.fecha));
       case 'getCompras':      return ok(getCompras());
       case 'getAjustes':      return ok(getAjustes());
+      case 'getGastos':       return ok(getGastos());
       default:                return ok({ status: 'La Posta API activa' });
     }
   } catch (err) {
@@ -57,6 +58,8 @@ function doPost(e) {
       case 'setFondoCaja':       return ok(setFondoCaja(body.data));
       case 'resetDatos':         return ok(resetDatos(body.data));
       case 'marcarCompraPagada': return ok(marcarCompraPagada(body.data));
+      case 'guardarGasto':       return ok(guardarGasto(body.data));
+      case 'marcarGastoPagado':  return ok(marcarGastoPagado(body.data));
       default:                return error('Acción desconocida: ' + action);
     }
   } catch (err) {
@@ -182,6 +185,79 @@ function marcarCompraPagada(data) {
 
 function getAjustes() {
   return sheetToObjects(getSheet('Ajustes_Stock'));
+}
+
+// ── Gastos ──────────────────────────────────────────────────────────────────
+
+// Devuelve la hoja Gastos, creándola con encabezados si no existe.
+function getGastosSheet(ss) {
+  let sheet = ss.getSheetByName('Gastos');
+  if (!sheet) {
+    sheet = ss.insertSheet('Gastos');
+    sheet.getRange(1, 1, 1, 7).setValues([[
+      'Fecha', 'Categoría', 'Detalle', 'Monto', 'Medio_Pago', 'Estado_Pago', 'Observación'
+    ]]);
+    sheet.getRange(1, 1, 1, 7).setFontWeight('bold').setBackground('#d9d9d9');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
+
+function getGastos() {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const sheet = getGastosSheet(ss);
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+  const headers = data[0];
+  return data.slice(1).map((row, i) => {
+    const obj = { _fila: i + 2 };
+    headers.forEach((h, j) => {
+      const val = row[j];
+      obj[h] = (val instanceof Date && !isNaN(val))
+        ? Utilities.formatDate(val, 'America/Argentina/Buenos_Aires', 'yyyy-MM-dd')
+        : val;
+    });
+    return obj;
+  });
+}
+
+/**
+ * data = { fecha, categoria, detalle, monto, medioPago, estadoPago, observacion }
+ */
+function guardarGasto(data) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = getGastosSheet(ss);
+    sheet.appendRow([
+      data.fecha,
+      data.categoria,
+      data.detalle,
+      Number(data.monto) || 0,
+      data.medioPago || '',
+      data.estadoPago || 'Pagado',
+      data.observacion || ''
+    ]);
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function marcarGastoPagado(data) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = getGastosSheet(ss);
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    const colEstado = headers.indexOf('Estado_Pago');
+    sheet.getRange(data.fila, colEstado + 1).setValue('Pagado');
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
 }
 
 // ── Funciones POST ───────────────────────────────────────────────────────────

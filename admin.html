@@ -272,7 +272,7 @@
 
 <div id="app">
   <div id="header">
-    <h1>⚙ Panel Admin <span id="version-badge">v2.6</span></h1>
+    <h1>⚙ Panel Admin <span id="version-badge">v2.7</span></h1>
     <button id="btn-volver" onclick="window.location.href='index.html'">← Volver a caja</button>
   </div>
 
@@ -280,6 +280,7 @@
     <button class="tab activo" data-tab="productos">Productos</button>
     <button class="tab" data-tab="compras">Compras</button>
     <button class="tab" data-tab="ctacte">Cuenta corriente</button>
+    <button class="tab" data-tab="gastos">Gastos</button>
     <button class="tab" data-tab="stock">Ajuste stock</button>
     <button class="tab" data-tab="cierre">Cierre de caja</button>
     <button class="tab" data-tab="config">Configuración</button>
@@ -498,6 +499,88 @@
       </div>
     </div>
 
+    <!-- ── TAB: GASTOS ────────────────────────────────────────────────── -->
+    <div id="tab-gastos" style="display:none">
+      <div class="card">
+        <h2>Registrar gasto</h2>
+        <div class="form-grid">
+          <div class="field">
+            <label>Fecha *</label>
+            <input type="date" id="gasto-fecha">
+          </div>
+          <div class="field">
+            <label>Categoría * <span style="font-weight:400;color:#888">(escribí o elegí)</span></label>
+            <input type="text" id="gasto-categoria" list="categorias-gasto" placeholder="Sueldos, Servicios..." autocomplete="off">
+            <datalist id="categorias-gasto">
+              <option value="Sueldos">
+              <option value="Servicios (luz/agua/gas)">
+              <option value="Alquiler">
+              <option value="Impuestos">
+              <option value="Mantenimiento">
+              <option value="Fletes">
+              <option value="Limpieza">
+              <option value="Otros">
+            </datalist>
+          </div>
+          <div class="field full">
+            <label>Detalle *</label>
+            <input type="text" id="gasto-detalle" placeholder="Ej: Luz febrero, Sueldo Juan...">
+          </div>
+          <div class="field">
+            <label>Monto *</label>
+            <input type="number" id="gasto-monto" placeholder="0" min="0">
+          </div>
+          <div class="field">
+            <label>Medio de pago</label>
+            <select id="gasto-medio">
+              <option value="Efectivo">Efectivo</option>
+              <option value="Transferencia">Transferencia</option>
+              <option value="Mercado Pago">Mercado Pago</option>
+              <option value="Cuenta DNI">Cuenta DNI</option>
+              <option value="Tarjeta">Tarjeta</option>
+              <option value="Débito automático">Débito automático</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Estado</label>
+            <select id="gasto-estado">
+              <option value="Pagado">Pagado</option>
+              <option value="Pendiente">Pendiente</option>
+            </select>
+          </div>
+          <div class="field full">
+            <label>Observación</label>
+            <textarea id="gasto-obs" placeholder="Notas adicionales..."></textarea>
+          </div>
+        </div>
+        <div id="msg-gasto-ok" class="msg-ok">Gasto registrado correctamente</div>
+        <div id="msg-gasto-error" class="msg-error"></div>
+        <button class="btn-primary" onclick="guardarGasto()">Registrar gasto</button>
+      </div>
+
+      <div class="card">
+        <h2>Gastos registrados</h2>
+        <div id="gastos-total" style="font-size:1rem;font-weight:800;color:#c62828;margin-bottom:10px"></div>
+        <div class="tabla-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Categoría</th>
+                <th>Detalle</th>
+                <th>Monto</th>
+                <th>Medio</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="tbody-gastos">
+              <tr><td colspan="6" style="text-align:center;color:#999;padding:20px">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- ── TAB: AJUSTE STOCK ──────────────────────────────────────────── -->
     <div id="tab-stock" style="display:none">
       <div class="card">
@@ -705,7 +788,7 @@ async function init() {
 function setFechasHoy() {
   const hoy = new Date().toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
     .split('/').reverse().map(p => p.padStart(2,'0')).join('-');
-  ['compra-fecha','ajuste-fecha'].forEach(id => {
+  ['compra-fecha','ajuste-fecha','gasto-fecha'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = hoy;
   });
@@ -812,8 +895,76 @@ document.querySelectorAll('.tab').forEach(tab => {
     document.getElementById(`tab-${nombre}`).style.display = 'block';
     if (nombre === 'cierre') cargarResumenDia();
     if (nombre === 'ctacte') renderCtaCte();
+    if (nombre === 'gastos') cargarGastos();
   };
 });
+
+// ── Gastos ─────────────────────────────────────────────────────────────────
+let gastos = [];
+
+async function cargarGastos() {
+  try {
+    gastos = await apiGet('getGastos');
+    renderTablaGastos();
+  } catch(e) {
+    document.getElementById('tbody-gastos').innerHTML =
+      `<tr><td colspan="6" style="text-align:center;color:#c62828;padding:20px">${e.message}</td></tr>`;
+  }
+}
+
+function renderTablaGastos() {
+  const tbody = document.getElementById('tbody-gastos');
+  const totalDiv = document.getElementById('gastos-total');
+  if (gastos.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;padding:20px">Sin gastos registrados</td></tr>';
+    totalDiv.textContent = '';
+    return;
+  }
+  const ultimos = [...gastos].reverse();
+  const total = gastos.reduce((s, g) => s + (Number(g['Monto']) || 0), 0);
+  totalDiv.textContent = `Total gastos: ${formatPesos(total)} (${gastos.length} registros)`;
+  tbody.innerHTML = ultimos.map(g => {
+    const pagado = g['Estado_Pago'] === 'Pagado';
+    return `<tr>
+      <td>${g['Fecha'] || '-'}</td>
+      <td>${g['Categoría'] || '-'}</td>
+      <td>${g['Detalle'] || '-'}</td>
+      <td style="font-weight:700">${formatPesos(g['Monto'])}</td>
+      <td>${g['Medio_Pago'] || '-'}</td>
+      <td><span class="badge ${pagado ? 'badge-ok' : ''}" ${!pagado ? 'style="background:#ffebee;color:#c62828"' : ''}>${g['Estado_Pago'] || '-'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+async function guardarGasto() {
+  const detalle = document.getElementById('gasto-detalle').value.trim();
+  const categoria = document.getElementById('gasto-categoria').value.trim();
+  const monto = parseFloat(document.getElementById('gasto-monto').value) || 0;
+
+  if (!categoria || !detalle || monto === 0) {
+    mostrarMsg('msg-gasto-error', 'Completá categoría, detalle y monto.');
+    return;
+  }
+
+  const data = {
+    fecha: document.getElementById('gasto-fecha').value,
+    categoria,
+    detalle,
+    monto,
+    medioPago: document.getElementById('gasto-medio').value,
+    estadoPago: document.getElementById('gasto-estado').value,
+    observacion: document.getElementById('gasto-obs').value.trim()
+  };
+
+  try {
+    await apiPost('guardarGasto', data);
+    mostrarMsg('msg-gasto-ok', null);
+    ['gasto-detalle','gasto-monto','gasto-obs'].forEach(id => document.getElementById(id).value = '');
+    await cargarGastos();
+  } catch(e) {
+    mostrarMsg('msg-gasto-error', 'Error: ' + e.message);
+  }
+}
 
 // ── Cuenta corriente ───────────────────────────────────────────────────────
 async function renderCtaCte() {
