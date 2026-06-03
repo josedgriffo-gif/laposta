@@ -332,7 +332,7 @@
 
 <div id="app" style="display:none">
   <div id="header">
-    <h1>⚙ Panel Admin <span id="version-badge">v3.6</span></h1>
+    <h1>⚙ Panel Admin <span id="version-badge">v3.7</span></h1>
     <div style="display:flex;gap:8px">
       <button id="btn-volver" onclick="window.location.href='ayuda.html'" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:8px 16px;font-size:0.9rem;font-weight:600">📖 Ayuda</button>
       <button id="btn-volver" onclick="window.location.href='index.html'">← Volver a caja</button>
@@ -496,8 +496,9 @@
             <input type="text" id="compra-unidad" placeholder="Se completa solo" readonly style="background:#f5f5f5">
           </div>
           <div class="field">
-            <label>Costo total *</label>
-            <input type="number" id="compra-costo-total" placeholder="0" min="0" oninput="calcularCostoUnit()">
+            <label>Costo total * <span style="font-weight:400;color:#888">(sin puntos: 200000)</span></label>
+            <input type="number" id="compra-costo-total" placeholder="0" min="0" oninput="calcularCostoUnit(); mostrarMontoCompra()">
+            <div id="compra-costo-preview" style="font-size:0.9rem;font-weight:700;color:#2e7d32;min-height:18px;margin-top:2px"></div>
           </div>
           <div class="field">
             <label>Costo unitario</label>
@@ -594,8 +595,9 @@
             <input type="text" id="gasto-detalle" placeholder="Ej: Luz febrero, Sueldo Juan...">
           </div>
           <div class="field">
-            <label>Monto *</label>
-            <input type="number" id="gasto-monto" placeholder="0" min="0">
+            <label>Monto * <span style="font-weight:400;color:#888">(sin puntos: 200000)</span></label>
+            <input type="number" id="gasto-monto" placeholder="0" min="0" oninput="document.getElementById('gasto-monto-preview').textContent=(parseFloat(this.value)||0)>0?'= '+formatPesos(parseFloat(this.value)):''">
+            <div id="gasto-monto-preview" style="font-size:0.9rem;font-weight:700;color:#2e7d32;min-height:18px;margin-top:2px"></div>
           </div>
           <div class="field">
             <label>Medio de pago</label>
@@ -638,10 +640,11 @@
                 <th>Monto</th>
                 <th>Medio</th>
                 <th>Estado</th>
+                <th></th>
               </tr>
             </thead>
             <tbody id="tbody-gastos">
-              <tr><td colspan="6" style="text-align:center;color:#999;padding:20px">Cargando...</td></tr>
+              <tr><td colspan="7" style="text-align:center;color:#999;padding:20px">Cargando...</td></tr>
             </tbody>
           </table>
         </div>
@@ -984,6 +987,7 @@ let ajustes = [];
 let config = {};
 let sortCol = 'nombre';
 let sortAsc = true;
+let _guardando = false; // candado anti-duplicado para los formularios de guardado
 
 // ── Init: primero pide PIN, luego carga según el rol ────────────────────────
 let rolActual = null; // 'admin' | 'accionistas'
@@ -1533,7 +1537,7 @@ function renderTablaGastos() {
   const tbody = document.getElementById('tbody-gastos');
   const totalDiv = document.getElementById('gastos-total');
   if (gastos.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#999;padding:20px">Sin gastos registrados</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#999;padding:20px">Sin gastos registrados</td></tr>';
     totalDiv.textContent = '';
     return;
   }
@@ -1549,8 +1553,19 @@ function renderTablaGastos() {
       <td style="font-weight:700">${formatPesos(g['Monto'])}</td>
       <td>${g['Medio_Pago'] || '-'}</td>
       <td><span class="badge ${pagado ? 'badge-ok' : ''}" ${!pagado ? 'style="background:#ffebee;color:#c62828"' : ''}>${g['Estado_Pago'] || '-'}</span></td>
+      <td><button class="btn-sm" style="background:#ffebee;color:#c62828;border:1px solid #ef9a9a" onclick="borrarGasto(${g._fila}, '${(g['Detalle']||'').replace(/'/g,"")}')">Borrar</button></td>
     </tr>`;
   }).join('');
+}
+
+async function borrarGasto(fila, detalle) {
+  if (!confirm(`¿Borrar el gasto "${detalle}"?`)) return;
+  try {
+    await apiPost('borrarGasto', { fila });
+    await cargarGastos();
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
 }
 
 async function guardarGasto() {
@@ -1573,6 +1588,8 @@ async function guardarGasto() {
     observacion: document.getElementById('gasto-obs').value.trim()
   };
 
+  if (_guardando) return;
+  _guardando = true;
   try {
     await apiPost('guardarGasto', data);
     mostrarMsg('msg-gasto-ok', null);
@@ -1580,6 +1597,8 @@ async function guardarGasto() {
     await cargarGastos();
   } catch(e) {
     mostrarMsg('msg-gasto-error', 'Error: ' + e.message);
+  } finally {
+    _guardando = false;
   }
 }
 
@@ -1729,7 +1748,10 @@ function renderTablaProductos() {
       <td>${formatPesos(p['Costo'] || 0)}</td>
       <td><span class="badge ${activo ? 'badge-ok' : 'badge-off'}">${activo ? 'Activo' : 'Inactivo'}</span></td>
       <td>${tieneOferta ? `<span class="badge badge-oferta">${formatPesos(p['Precio_Oferta'])} x${p['Cantidad_Min_Oferta']}</span>` : '-'}</td>
-      <td><button class="btn-edit btn-sm" onclick="abrirEditar(${idx})">Editar</button></td>
+      <td style="white-space:nowrap">
+        <button class="btn-edit btn-sm" onclick="abrirEditar(${idx})">Editar</button>
+        <button class="btn-sm" style="background:#ffebee;color:#c62828;border:1px solid #ef9a9a" onclick="borrarProducto(${idx})">Borrar</button>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -1800,6 +1822,10 @@ async function guardarProducto() {
     fechaFinOferta: document.getElementById('prod-fecha-fin').value || ''
   };
 
+  const btn = document.getElementById('btn-guardar-prod');
+  if (btn.disabled) return;            // ya se está guardando, ignorar toques extra
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
   try {
     await apiPost('guardarProducto', data);
     mostrarMsg('msg-prod-ok', null);
@@ -1807,6 +1833,9 @@ async function guardarProducto() {
     await cargarProductos();
   } catch(e) {
     mostrarMsg('msg-prod-error', 'Error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Guardar producto';
   }
 }
 
@@ -1816,6 +1845,19 @@ function limpiarFormProd() {
   document.getElementById('prod-activo').value = 'SI';
   document.getElementById('prod-unidad').value = 'un';
   document.getElementById('form-prod-titulo').textContent = 'Agregar producto';
+}
+
+// ── Borrar producto ────────────────────────────────────────────────────────
+async function borrarProducto(idx) {
+  const p = productos[idx];
+  if (!confirm(`¿Borrar el producto "${p['Nombre']}"?\n\nSe quita del catálogo y del stock. Las ventas históricas no se tocan.`)) return;
+  try {
+    await apiPost('borrarProducto', { nombre: p['Nombre'] });
+    await cargarProductos();
+    await cargarStock();
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
 }
 
 // ── Editar producto ────────────────────────────────────────────────────────
@@ -1875,6 +1917,12 @@ function calcularCostoUnit() {
 
 document.getElementById('compra-cantidad').oninput = calcularCostoUnit;
 
+// Muestra el monto formateado mientras se tipea (evita confusión con el punto)
+function mostrarMontoCompra() {
+  const v = parseFloat(document.getElementById('compra-costo-total').value) || 0;
+  document.getElementById('compra-costo-preview').textContent = v > 0 ? '= ' + formatPesos(v) : '';
+}
+
 async function guardarCompra() {
   const producto = document.getElementById('compra-producto').value.trim();
   const cantidad = parseFloat(document.getElementById('compra-cantidad').value) || 0;
@@ -1899,6 +1947,8 @@ async function guardarCompra() {
     observacion: document.getElementById('compra-obs').value.trim()
   };
 
+  if (_guardando) return;
+  _guardando = true;
   try {
     await apiPost('guardarCompra', data);
     mostrarMsg('msg-compra-ok', null);
@@ -1907,6 +1957,8 @@ async function guardarCompra() {
     await cargarCompras();
   } catch(e) {
     mostrarMsg('msg-compra-error', 'Error: ' + e.message);
+  } finally {
+    _guardando = false;
   }
 }
 
@@ -1934,6 +1986,8 @@ async function guardarAjuste() {
     responsable: document.getElementById('ajuste-responsable').value.trim()
   };
 
+  if (_guardando) return;
+  _guardando = true;
   try {
     await apiPost('guardarAjuste', data);
     mostrarMsg('msg-ajuste-ok', null);
@@ -1942,6 +1996,8 @@ async function guardarAjuste() {
     await cargarAjustes();
   } catch(e) {
     mostrarMsg('msg-ajuste-error', 'Error: ' + e.message);
+  } finally {
+    _guardando = false;
   }
 }
 

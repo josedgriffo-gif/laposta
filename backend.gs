@@ -1,6 +1,6 @@
 /**
  * LA POSTA — Backend Google Apps Script
- * backend.gs v3.5
+ * backend.gs v3.7
  *
  * API REST para la app web de punto de venta.
  * Pegá este archivo completo en el editor de Apps Script
@@ -65,6 +65,8 @@ function doPost(e) {
       case 'guardarGasto':       return ok(guardarGasto(body.data));
       case 'marcarGastoPagado':  return ok(marcarGastoPagado(body.data));
       case 'anularVenta':        return ok(anularVenta(body.data));
+      case 'borrarProducto':     return ok(borrarProducto(body.data));
+      case 'borrarGasto':        return ok(borrarGasto(body.data));
       default:                return error('Acción desconocida: ' + action);
     }
   } catch (err) {
@@ -750,6 +752,57 @@ function guardarProducto(data) {
         stockSheet.appendRow([data.nombre, 0, ahora]);
       }
     }
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Borra un producto del catálogo y de Stock_Actual.
+ * No toca las ventas históricas (guardan el nombre).
+ * data = { nombre }
+ */
+function borrarProducto(data) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = ss.getSheetByName('Productos');
+    const rows = sheet.getDataRange().getValues();
+    const colNombre = rows[0].indexOf('Nombre');
+    for (let i = rows.length - 1; i >= 1; i--) {
+      if (String(rows[i][colNombre]).trim() === String(data.nombre).trim()) {
+        sheet.deleteRow(i + 1);
+      }
+    }
+    // Borrar también de Stock_Actual
+    const stock = ss.getSheetByName('Stock_Actual');
+    if (stock) {
+      const srows = stock.getDataRange().getValues();
+      for (let i = srows.length - 1; i >= 1; i--) {
+        if (String(srows[i][0]).trim() === String(data.nombre).trim()) {
+          stock.deleteRow(i + 1);
+        }
+      }
+    }
+    return { ok: true };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Borra un gasto por número de fila.
+ * data = { fila }
+ */
+function borrarGasto(data) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheet = getGastosSheet(ss);
+    sheet.deleteRow(data.fila);
     return { ok: true };
   } finally {
     lock.releaseLock();
