@@ -320,7 +320,7 @@
 
 <div id="app" style="display:none">
   <div id="header">
-    <h1>⚙ Panel Admin <span id="version-badge">v3.3</span></h1>
+    <h1>⚙ Panel Admin <span id="version-badge">v3.4</span></h1>
     <button id="btn-volver" onclick="window.location.href='index.html'">← Volver a caja</button>
   </div>
 
@@ -330,6 +330,7 @@
     <button class="tab" data-tab="ctacte">Cuenta corriente</button>
     <button class="tab" data-tab="gastos">Gastos</button>
     <button class="tab" data-tab="stock">Ajuste stock</button>
+    <button class="tab" data-tab="anular">Anular venta</button>
     <button class="tab" data-tab="cierre">Cierre de caja</button>
     <button class="tab" data-tab="informes">Informes</button>
     <button class="tab" data-tab="accionistas">Accionistas</button>
@@ -696,6 +697,22 @@
       </div>
     </div>
 
+    <!-- ── TAB: ANULAR VENTA ──────────────────────────────────────────── -->
+    <div id="tab-anular" style="display:none">
+      <div class="card">
+        <h2>Anular una venta</h2>
+        <p style="font-size:0.9rem;color:#555;line-height:1.5;margin-bottom:12px">
+          Al anular: la venta queda marcada como <strong>CANCELADA</strong> (no se borra),
+          el <strong>stock vuelve</strong> al inventario y el día se recalcula.
+        </p>
+        <div class="form-grid">
+          <div class="field"><label>Fecha</label><input type="date" id="anular-fecha"></div>
+        </div>
+        <button class="btn-primary" onclick="cargarVentasAnular()" style="margin-top:8px">Ver ventas del día</button>
+        <div id="anular-lista" style="margin-top:14px"></div>
+      </div>
+    </div>
+
     <!-- ── TAB: CIERRE DE CAJA ────────────────────────────────────────── -->
     <div id="tab-cierre" style="display:none">
 
@@ -937,7 +954,7 @@ async function init() {
 }
 
 // Tabs visibles para cada rol
-const TABS_ADMIN = ['productos','compras','ctacte','gastos','stock','cierre','informes','accionistas','exportar','config'];
+const TABS_ADMIN = ['productos','compras','ctacte','gastos','stock','anular','cierre','informes','accionistas','exportar','config'];
 const TABS_ACCIONISTAS = ['informes','accionistas'];
 
 async function entrarComoRol(rol) {
@@ -1123,8 +1140,59 @@ document.querySelectorAll('.tab').forEach(tab => {
     if (nombre === 'informes') initInformes();
     if (nombre === 'exportar') initExportar();
     if (nombre === 'accionistas') initAccionistas();
+    if (nombre === 'anular') initAnular();
   };
 });
+
+// ── Anular venta ───────────────────────────────────────────────────────────
+function initAnular() {
+  const f = document.getElementById('anular-fecha');
+  if (!f.value) f.value = ymd(new Date());
+}
+
+async function cargarVentasAnular() {
+  const fecha = document.getElementById('anular-fecha').value;
+  const cont = document.getElementById('anular-lista');
+  cont.innerHTML = '<div style="color:#999;padding:14px">Cargando ventas...</div>';
+  try {
+    const ventas = await apiGet('getVentasFecha&fecha=' + fecha);
+    if (!ventas.length) {
+      cont.innerHTML = '<div style="color:#999;padding:14px;text-align:center">No hay ventas en esa fecha</div>';
+      return;
+    }
+    cont.innerHTML = `
+      <div class="tabla-scroll"><table>
+        <thead><tr><th>Ticket</th><th>Hora</th><th>Total</th><th>Medio</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+        ${[...ventas].reverse().map(v => {
+          const cancelada = v['Estado'] === 'CANCELADA';
+          return `<tr ${cancelada ? 'style="opacity:0.5"' : ''}>
+            <td><strong>${v['Ticket']}</strong></td>
+            <td>${v['Hora'] || '-'}</td>
+            <td style="font-weight:700">${formatPesos(v['Total Venta'])}</td>
+            <td>${v['Medio Pago'] || '-'}</td>
+            <td>${cancelada ? '<span class="badge" style="background:#ffebee;color:#c62828">ANULADA</span>' : '<span class="badge badge-ok">OK</span>'}</td>
+            <td>${cancelada ? '' : `<button class="btn-sm" style="background:#ffebee;color:#c62828;border:1px solid #ef9a9a" onclick="anularVenta('${v['Ticket']}', ${v['Total Venta']})">Anular</button>`}</td>
+          </tr>`;
+        }).join('')}
+        </tbody>
+      </table></div>`;
+  } catch(e) {
+    cont.innerHTML = `<div style="color:#c62828;padding:14px">Error: ${e.message}</div>`;
+  }
+}
+
+async function anularVenta(ticket, total) {
+  if (!confirm(`¿Anular la venta ${ticket} por ${formatPesos(total)}?\n\nEl stock vuelve al inventario y la venta queda como CANCELADA.`)) return;
+  if (!confirm('Esta acción no se puede deshacer. ¿Confirmás la anulación?')) return;
+  try {
+    await apiPost('anularVenta', { ticket });
+    alert('Venta anulada correctamente.');
+    cargarVentasAnular();
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+}
 
 // ── Accionistas (estado de resultados comparativo) ─────────────────────────
 let modoAcc = 'mensual';

@@ -25,6 +25,7 @@ function doGet(e) {
       case 'getStock':        return ok(getStock());
       case 'getConfig':       return ok(getConfig());
       case 'getVentasHoy':    return ok(getVentasHoy());
+      case 'getVentasFecha':  return ok(getVentasFecha(e.parameter.fecha));
       case 'getResumenHoy':   return ok(getResumenHoy());
       case 'getFondoCaja':    return ok(getFondoCaja(e.parameter.fecha));
       case 'getCompras':      return ok(getCompras());
@@ -63,6 +64,7 @@ function doPost(e) {
       case 'marcarCompraPagada': return ok(marcarCompraPagada(body.data));
       case 'guardarGasto':       return ok(guardarGasto(body.data));
       case 'marcarGastoPagado':  return ok(marcarGastoPagado(body.data));
+      case 'anularVenta':        return ok(anularVenta(body.data));
       default:                return error('Acción desconocida: ' + action);
     }
   } catch (err) {
@@ -539,6 +541,67 @@ function guardarVenta(data) {
     // Registrar uuid procesado para idempotencia
     if (data.uuid) props.setProperty('v_' + data.uuid, JSON.stringify(resultado));
     return resultado;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * Lista las ventas de una fecha (default hoy), con su estado.
+ */
+function getVentasFecha(fecha) {
+  const f = fecha || fechaHoy();
+  return sheetToObjects(getSheet('BD_Ventas')).filter(v => formatearFecha(v['Fecha']) === f);
+}
+
+/**
+ * Anula una venta: la marca CANCELADA, devuelve el stock y recalcula el día.
+ * data = { ticket }
+ */
+function anularVenta(data) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sheetV = ss.getSheetByName('BD_Ventas');
+    const rows = sheetV.getDataRange().getValues();
+    const headers = rows[0];
+    const colTicket = headers.indexOf('Ticket');
+    const colEstado = headers.indexOf('Estado');
+    const colFecha  = headers.indexOf('Fecha');
+
+    let fechaVenta = null;
+    let encontrada = false;
+    for (let i = 1; i < rows.length; i++) {
+      if (String(rows[i][colTicket]) === String(data.ticket)) {
+        if (String(rows[i][colEstado]) === 'CANCELADA') {
+          throw new Error('Esta venta ya estaba anulada.');
+        }
+        sheetV.getRange(i + 1, colEstado + 1).setValue('CANCELADA');
+        fechaVenta = formatearFecha(rows[i][colFecha]);
+        encontrada = true;
+        break;
+      }
+    }
+    if (!encontrada) throw new Error('No se encontró la venta ' + data.ticket);
+
+    // Devolver el stock de cada producto de esa venta
+    const sheetD = ss.getSheetByName('Detalle_Ventas');
+    const dRows = sheetD.getDataRange().getValues();
+    const dh = dRows[0];
+    const dcTicket = dh.indexOf('Ticket');
+    const dcProd = dh.indexOf('Producto');
+    const dcCant = dh.indexOf('Cantidad');
+    for (let i = 1; i < dRows.length; i++) {
+      if (String(dRows[i][dcTicket]) === String(data.ticket)) {
+        updateStock(ss, dRows[i][dcProd], Number(dRows[i][dcCant]) || 0); // suma de vuelta
+      }
+    }
+
+    // Recalcular el resumen del día
+    if (fechaVenta) actualizarResumenDia(ss, fechaVenta);
+
+    return { ok: true };
   } finally {
     lock.releaseLock();
   }
