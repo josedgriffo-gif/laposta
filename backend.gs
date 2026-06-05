@@ -1,6 +1,6 @@
 /**
  * LA POSTA — Backend Google Apps Script
- * backend.gs v3.8
+ * backend.gs v3.9
  *
  * API REST para la app web de punto de venta.
  * Pegá este archivo completo en el editor de Apps Script
@@ -276,6 +276,25 @@ function getAjustes() {
   return sheetToObjects(getSheet('Ajustes_Stock'));
 }
 
+// ── Stock valorizado ────────────────────────────────────────────────────────
+// Suma de (stock de cada producto × su costo actual). Capital en mercadería hoy.
+function valorStock(ss) {
+  const productos = sheetToObjects(ss.getSheetByName('Productos'));
+  const costoDe = {};
+  productos.forEach(p => { costoDe[String(p['Nombre']).trim()] = Number(p['Costo']) || 0; });
+
+  const stockSheet = ss.getSheetByName('Stock_Actual');
+  if (!stockSheet) return 0;
+
+  let total = 0;
+  sheetToObjects(stockSheet).forEach(r => {
+    const s = Number(r['Stock_Actual']) || 0;
+    const c = costoDe[String(r['Producto']).trim()] || 0;
+    total += s * c;
+  });
+  return total;
+}
+
 // ── Informes ────────────────────────────────────────────────────────────────
 
 /**
@@ -358,7 +377,8 @@ function getInforme(desde, hasta) {
     medios,
     topProductos, porCategoria,
     totalGastos, gastosPorCategoria,
-    resultadoNeto
+    resultadoNeto,
+    stockValorizado: valorStock(ss)
   };
 }
 
@@ -417,7 +437,7 @@ function getAccionistas(desde, hasta, modalidad) {
   });
 
   // Armar array ordenado por clave de período
-  return Object.keys(acum).sort().map(k => {
+  const periodos = Object.keys(acum).sort().map(k => {
     const a = acum[k];
     const cm = a.ventas - a.costoMP;
     return {
@@ -430,6 +450,8 @@ function getAccionistas(desde, hasta, modalidad) {
       utilidadNeta: cm - a.gastos
     };
   });
+
+  return { periodos: periodos, stockValorizado: valorStock(ss) };
 }
 
 /**
