@@ -422,7 +422,7 @@
             <input type="number" id="prod-precio" placeholder="0" min="0">
           </div>
           <div class="field">
-            <label>Costo</label>
+            <label id="lbl-prod-costo">Costo</label>
             <input type="number" id="prod-costo" placeholder="0" min="0">
           </div>
           <div class="field">
@@ -993,7 +993,7 @@
         <input type="text" id="edit-unidad" list="unidades-list" placeholder="un, kg, lt, caja..." autocomplete="off">
       </div>
       <div class="field"><label id="lbl-edit-precio">Precio</label><input type="number" id="edit-precio" min="0"></div>
-      <div class="field"><label>Costo</label><input type="number" id="edit-costo" min="0"></div>
+      <div class="field"><label id="lbl-edit-costo">Costo</label><input type="number" id="edit-costo" min="0"></div>
       <div class="field">
         <label>Activo</label>
         <select id="edit-activo"><option value="SI">Sí</option><option value="NO">No</option></select>
@@ -1918,19 +1918,25 @@ function labelPrecio(unidad) {
   return u;
 }
 
-function actualizarLabelsPrecio(unidad, prefixLbl, prefixOfertaLbl) {
+function actualizarLabelsPrecio(unidad, ids) {
   const sufijo = labelPrecio(unidad);
-  document.getElementById(prefixLbl).textContent =
+  document.getElementById(ids.precio).textContent =
     sufijo ? `Precio por ${sufijo} *` : 'Precio de venta *';
-  document.getElementById(prefixOfertaLbl).textContent =
+  document.getElementById(ids.costo).textContent =
+    sufijo ? `Costo por ${sufijo}` : 'Costo';
+  document.getElementById(ids.oferta).textContent =
     sufijo ? `Precio oferta por ${sufijo}` : 'Precio oferta';
 }
 
 document.getElementById('prod-unidad').addEventListener('input', function() {
-  actualizarLabelsPrecio(this.value, 'lbl-prod-precio', 'lbl-prod-precio-oferta');
+  actualizarLabelsPrecio(this.value, {
+    precio: 'lbl-prod-precio', costo: 'lbl-prod-costo', oferta: 'lbl-prod-precio-oferta'
+  });
 });
 document.getElementById('edit-unidad').addEventListener('input', function() {
-  actualizarLabelsPrecio(this.value, 'lbl-edit-precio', 'lbl-edit-precio-oferta');
+  actualizarLabelsPrecio(this.value, {
+    precio: 'lbl-edit-precio', costo: 'lbl-edit-costo', oferta: 'lbl-edit-precio-oferta'
+  });
 });
 
 // ── Borrar producto ────────────────────────────────────────────────────────
@@ -1953,7 +1959,9 @@ function abrirEditar(idx) {
   document.getElementById('edit-nombre').value = p['Nombre'];
   document.getElementById('edit-categoria').value = p['Categoría'] || '';
   document.getElementById('edit-unidad').value = p['Unidad'] || 'un';
-  actualizarLabelsPrecio(p['Unidad'] || 'un', 'lbl-edit-precio', 'lbl-edit-precio-oferta');
+  actualizarLabelsPrecio(p['Unidad'] || 'un', {
+    precio: 'lbl-edit-precio', costo: 'lbl-edit-costo', oferta: 'lbl-edit-precio-oferta'
+  });
   document.getElementById('edit-precio').value = p['Precio'] || '';
   document.getElementById('edit-costo').value = p['Costo'] || '';
   document.getElementById('edit-activo').value = p['Activo'] || 'SI';
