@@ -442,7 +442,7 @@
               <input type="number" id="prod-precio-oferta" placeholder="0" min="0">
             </div>
             <div class="field">
-              <label>Cantidad mínima</label>
+              <label id="lbl-prod-cant-min">Cantidad mínima para oferta</label>
               <input type="number" id="prod-cant-min" placeholder="0" min="0">
             </div>
             <div class="field">
@@ -999,7 +999,7 @@
         <select id="edit-activo"><option value="SI">Sí</option><option value="NO">No</option></select>
       </div>
       <div class="field"><label id="lbl-edit-precio-oferta">Precio oferta</label><input type="number" id="edit-precio-oferta" min="0"></div>
-      <div class="field"><label>Cant. mínima oferta</label><input type="number" id="edit-cant-min" min="0"></div>
+      <div class="field"><label id="lbl-edit-cant-min">Cantidad mínima para oferta</label><input type="number" id="edit-cant-min" min="0"></div>
       <div class="field full"><label>Fecha fin oferta</label><input type="date" id="edit-fecha-fin"></div>
     </div>
     <div id="msg-edit-ok" class="msg-ok">Guardado</div>
@@ -1925,16 +1925,18 @@ function actualizarLabelsPrecio(unidad, ids) {
     sufijo ? `Costo por ${sufijo}` : 'Costo';
   document.getElementById(ids.oferta).textContent =
     sufijo ? `Precio oferta por ${sufijo}` : 'Precio oferta';
+  document.getElementById(ids.cantMin).textContent =
+    sufijo ? `Cantidad mínima en ${sufijo} para oferta` : 'Cantidad mínima para oferta';
 }
 
 document.getElementById('prod-unidad').addEventListener('input', function() {
   actualizarLabelsPrecio(this.value, {
-    precio: 'lbl-prod-precio', costo: 'lbl-prod-costo', oferta: 'lbl-prod-precio-oferta'
+    precio: 'lbl-prod-precio', costo: 'lbl-prod-costo', oferta: 'lbl-prod-precio-oferta', cantMin: 'lbl-prod-cant-min'
   });
 });
 document.getElementById('edit-unidad').addEventListener('input', function() {
   actualizarLabelsPrecio(this.value, {
-    precio: 'lbl-edit-precio', costo: 'lbl-edit-costo', oferta: 'lbl-edit-precio-oferta'
+    precio: 'lbl-edit-precio', costo: 'lbl-edit-costo', oferta: 'lbl-edit-precio-oferta', cantMin: 'lbl-edit-cant-min'
   });
 });
 
@@ -1959,7 +1961,7 @@ function abrirEditar(idx) {
   document.getElementById('edit-categoria').value = p['Categoría'] || '';
   document.getElementById('edit-unidad').value = p['Unidad'] || 'un';
   actualizarLabelsPrecio(p['Unidad'] || 'un', {
-    precio: 'lbl-edit-precio', costo: 'lbl-edit-costo', oferta: 'lbl-edit-precio-oferta'
+    precio: 'lbl-edit-precio', costo: 'lbl-edit-costo', oferta: 'lbl-edit-precio-oferta', cantMin: 'lbl-edit-cant-min'
   });
   document.getElementById('edit-precio').value = p['Precio'] || '';
   document.getElementById('edit-costo').value = p['Costo'] || '';
