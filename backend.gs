@@ -314,6 +314,7 @@ function getInforme(desde, hasta) {
   const totalVentas = ventas.reduce((s, v) => s + (Number(v['Total Venta']) || 0), 0);
   const costoVentas = ventas.reduce((s, v) => s + (Number(v['Costo Total']) || 0), 0);
   const margenBruto = totalVentas - costoVentas;
+  const totalRedondeo = ventas.reduce((s, v) => s + (Number(v['Redondeo']) || 0), 0);
   const cantTickets = ventas.length;
   const ticketProm  = cantTickets > 0 ? totalVentas / cantTickets : 0;
 
@@ -369,7 +370,7 @@ function getInforme(desde, hasta) {
 
   return {
     desde, hasta,
-    totalVentas, costoVentas, margenBruto,
+    totalVentas, costoVentas, margenBruto, totalRedondeo,
     margenPct: totalVentas > 0 ? (margenBruto / totalVentas * 100) : 0,
     cantTickets, ticketProm,
     medios,
@@ -601,7 +602,8 @@ function guardarVenta(data) {
       data.efectivoRecibido || 0,
       data.vuelto || 0,
       data.estado || 'OK',
-      data.nota || ''
+      data.nota || '',
+      data.redondeo || 0
     ]);
 
     // ── Detalle_Ventas ──

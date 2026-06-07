@@ -633,7 +633,12 @@
 <div class="modal-overlay" id="modal-cobro">
   <div class="modal">
     <h2>Cobrar venta</h2>
-    <div id="modal-total-label" class="modal-total">$ 0</div>
+    <div id="modal-total-label" class="modal-total" style="font-size:0.9rem;color:#888;font-weight:500">Total calculado: $ 0</div>
+    <div style="display:flex;align-items:center;gap:10px;margin:6px 0 12px">
+      <label style="font-size:0.9rem;font-weight:600;color:#333;white-space:nowrap">Total a cobrar:</label>
+      <input type="number" id="total-ajustado" style="font-size:1.2rem;font-weight:700;color:#1b5e20;border:2px solid #c8e6c9;border-radius:8px;padding:6px 10px;width:100%;text-align:right" oninput="actualizarRedondeo()">
+    </div>
+    <div id="redondeo-display" style="display:none;font-size:0.85rem;font-weight:600;color:#e65100;margin-bottom:8px;text-align:right"></div>
 
     <div>
       <div style="font-size:0.85rem;font-weight:600;color:#555;margin-bottom:8px;">Medio de pago</div>
@@ -1116,7 +1121,9 @@ document.getElementById('btn-cancelar').onclick = () => {
 // ── Modal cobro ────────────────────────────────────────────────────────────
 document.getElementById('btn-cobrar').onclick = () => {
   const total = calcularTotal();
-  document.getElementById('modal-total-label').textContent = formatPesos(total);
+  document.getElementById('modal-total-label').textContent = 'Total calculado: ' + formatPesos(total);
+  document.getElementById('total-ajustado').value = total;
+  document.getElementById('redondeo-display').style.display = 'none';
   medioSeleccionado = null;
   document.querySelectorAll('.btn-medio').forEach(b => b.classList.remove('seleccionado'));
   document.getElementById('campos-pago').innerHTML = '';
@@ -1124,6 +1131,26 @@ document.getElementById('btn-cobrar').onclick = () => {
   document.getElementById('btn-confirmar-venta').disabled = true;
   document.getElementById('modal-cobro').classList.add('visible');
 };
+
+function totalAjustado() {
+  return parseFloat(document.getElementById('total-ajustado').value) || calcularTotal();
+}
+
+function actualizarRedondeo() {
+  const original = calcularTotal();
+  const ajustado = totalAjustado();
+  const diff = original - ajustado;
+  const el = document.getElementById('redondeo-display');
+  if (Math.abs(diff) > 0.01) {
+    el.style.display = 'block';
+    el.textContent = diff > 0 ? `Redondeo: −${formatPesos(diff)}` : `Recargo: +${formatPesos(Math.abs(diff))}`;
+  } else {
+    el.style.display = 'none';
+  }
+  // recalcular vuelto si efectivo ya está cargado
+  if (document.getElementById('efectivo-recibido')) calcularVuelto();
+  if (medioSeleccionado === 'Mixto') validarMixto();
+}
 
 document.querySelectorAll('.btn-medio').forEach(btn => {
   btn.onclick = () => {
@@ -1165,14 +1192,13 @@ function renderCamposPago(medio) {
 }
 
 function calcularVuelto() {
-  const total = calcularTotal();
+  const total = totalAjustado();
   const campo = document.getElementById('efectivo-recibido');
   const recibido = parseFloat(campo.value) || 0;
   const vuelto = document.getElementById('vuelto-display');
   const btn = document.getElementById('btn-confirmar-venta');
 
   if (campo.value === '' || recibido === 0) {
-    // Campo vacío = pago justo, se permite
     vuelto.classList.remove('visible');
     btn.disabled = false;
   } else if (recibido >= total) {
@@ -1181,7 +1207,6 @@ function calcularVuelto() {
     vuelto.classList.add('visible');
     btn.disabled = false;
   } else {
-    // Recibido menor al total = error, se bloquea
     vuelto.textContent = `Falta: ${formatPesos(total - recibido)}`;
     vuelto.style.color = '#c62828';
     vuelto.classList.add('visible');
@@ -1190,7 +1215,7 @@ function calcularVuelto() {
 }
 
 function validarMixto() {
-  const total = calcularTotal();
+  const total = totalAjustado();
   const medios = ['Efectivo', 'Mercado_Pago', 'Transferencia', 'Cuenta_DNI', 'Tarjeta'];
   const suma = medios.reduce((s, m) => {
     const el = document.getElementById('mixto-' + m);
@@ -1253,7 +1278,9 @@ function construirDatosVenta() {
   const hora  = formatHora(ahora);
   const ticket = generarTicketLocal(fecha);
   const uuid = generarUUID(); // identificador único para evitar duplicados
-  const total  = calcularTotal();
+  const totalOriginal = calcularTotal();
+  const total = totalAjustado();
+  const redondeo = Math.round((totalOriginal - total) * 100) / 100;
   const costoTotal = carrito.reduce((s, i) => s + (i.costo * i.cantidad), 0);
   const margen = total - costoTotal;
 
@@ -1283,6 +1310,7 @@ function construirDatosVenta() {
 
   return {
     ticket, uuid, fecha, hora, total, costoTotal, margen,
+    redondeo,
     medioPago: medioSeleccionado,
     mediosPago: mp,
     efectivoRecibido, vuelto,

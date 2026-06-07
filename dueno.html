@@ -572,6 +572,7 @@ function renderInforme(inf) {
       <h2>Resultado del período</h2>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
         ${tarjeta('Ventas', formatPesos(inf.totalVentas), '#1b5e20')}
+        ${inf.totalRedondeo > 0 ? tarjeta('Redondeo (descuentos)', '−' + formatPesos(inf.totalRedondeo), '#e65100') : ''}
         ${tarjeta('Costo mercadería', formatPesos(inf.costoVentas), '#888')}
         ${tarjeta('Margen bruto', formatPesos(inf.margenBruto), '#2e7d32')}
         ${tarjeta('Gastos', formatPesos(inf.totalGastos), '#e65100')}
