@@ -1914,8 +1914,7 @@ function limpiarFormProd() {
 
 function labelPrecio(unidad) {
   const u = (unidad || '').trim();
-  if (!u || u.toLowerCase() === 'un' || u.toLowerCase() === 'unidad') return null;
-  return u;
+  return u || null;
 }
 
 function actualizarLabelsPrecio(unidad, ids) {
