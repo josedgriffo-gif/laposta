@@ -366,7 +366,14 @@ function verificarPin() {
   if (pinBuffer === pinSocios || pinBuffer === pinAdmin) {
     document.getElementById('pantalla-pin').style.display = 'none';
     document.getElementById('loading').style.display = 'flex';
-    cargarDatosHoy();
+    const hash = window.location.hash.replace('#', '');
+    if (hash === 'evolucion' || hash === 'accionistas') {
+      cargarDatosHoy().then(() => {
+        document.querySelector(`.tab[data-tab="${hash}"]`).click();
+      });
+    } else {
+      cargarDatosHoy();
+    }
   } else {
     document.getElementById('pin-error').textContent = 'PIN incorrecto';
     pinBuffer = '';
