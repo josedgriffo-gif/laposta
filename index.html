@@ -535,7 +535,7 @@
 
   <!-- Header -->
   <div id="header">
-    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v4.3</span></h1>
+    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v4.6</span></h1>
     <div id="header-right">
       <span id="offline-badge">SIN CONEXIÓN</span>
       <button id="btn-dueno">HOY</button>
@@ -600,11 +600,18 @@
     <div id="peso-precio-preview"></div>
 
     <!-- Botones rápidos de peso -->
-    <div id="peso-rapidos" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+    <div id="peso-rapidos" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px">
+      <button class="peso-rapido" data-gr="100">100 g</button>
+      <button class="peso-rapido" data-gr="150">150 g</button>
+      <button class="peso-rapido" data-gr="200">200 g</button>
       <button class="peso-rapido" data-gr="250">250 g</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:8px">
       <button class="peso-rapido" data-gr="500">500 g</button>
       <button class="peso-rapido" data-gr="750">750 g</button>
       <button class="peso-rapido" data-gr="1000">1 kg</button>
+      <button class="peso-rapido" data-gr="2000">2 kg</button>
+      <button class="peso-rapido" data-gr="3000">3 kg</button>
     </div>
 
     <!-- TODO: Aquí integrar lectura de balanza Bluetooth — función leerBalanza() -->
