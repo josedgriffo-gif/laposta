@@ -373,24 +373,25 @@
   }
 
   /* ── Modal de ingreso de peso ─────────────────────────────────────────── */
-  #modal-peso .modal { max-width: 360px; }
-  #peso-producto-nombre { font-weight: 700; font-size: 1.1rem; color: #333; text-align: center; }
+  #modal-peso .modal { max-width: 360px; padding: 16px; }
+  #modal-peso h2 { margin-bottom: 8px; font-size: 1.2rem; }
+  #peso-producto-nombre { font-weight: 700; font-size: 1rem; color: #333; text-align: center; margin-bottom: 8px; }
   #peso-input {
     width: 100%;
-    padding: 14px;
+    padding: 8px 14px;
     border: 2px solid #2e7d32;
     border-radius: 8px;
-    font-size: 1.5rem;
+    font-size: 1.4rem;
     font-weight: 700;
     text-align: center;
   }
-  #peso-precio-preview { text-align: center; color: #2e7d32; font-weight: 600; font-size: 1rem; min-height: 22px; }
+  #peso-precio-preview { text-align: center; color: #2e7d32; font-weight: 600; font-size: 0.9rem; min-height: 18px; margin: 4px 0; }
   .peso-rapido {
     background: #e8f5e9;
     color: #1b5e20;
     border-radius: 8px;
-    padding: 12px 4px;
-    font-size: 1rem;
+    padding: 10px 4px;
+    font-size: 0.95rem;
     font-weight: 700;
     border: 1px solid #c8e6c9;
   }
@@ -454,13 +455,13 @@
   #peso-teclado {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
+    gap: 6px;
   }
   .peso-key {
     background: #f5f5f5;
     border-radius: 8px;
-    padding: 16px;
-    font-size: 1.2rem;
+    padding: 12px;
+    font-size: 1.1rem;
     font-weight: 600;
     text-align: center;
     border: 1px solid #e0e0e0;
@@ -600,16 +601,18 @@
     <div id="peso-precio-preview"></div>
 
     <!-- Botones rápidos de peso -->
-    <div id="peso-rapidos" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:6px">
       <button class="peso-rapido" data-gr="100">100 g</button>
       <button class="peso-rapido" data-gr="150">150 g</button>
       <button class="peso-rapido" data-gr="200">200 g</button>
       <button class="peso-rapido" data-gr="250">250 g</button>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:8px">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px">
       <button class="peso-rapido" data-gr="500">500 g</button>
       <button class="peso-rapido" data-gr="750">750 g</button>
       <button class="peso-rapido" data-gr="1000">1 kg</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:8px">
       <button class="peso-rapido" data-gr="2000">2 kg</button>
       <button class="peso-rapido" data-gr="3000">3 kg</button>
     </div>
