@@ -350,8 +350,6 @@
     <button class="tab" data-tab="stock">Ajuste stock</button>
     <button class="tab" data-tab="anular">Anular venta</button>
     <button class="tab" data-tab="cierre">Cierre de caja</button>
-    <button class="tab" data-tab="evolucion">Evolución</button>
-    <button class="tab" data-tab="accionistas">Accionistas</button>
     <button class="tab" data-tab="exportar">Exportar</button>
     <button class="tab" data-tab="config">Configuración</button>
   </div>
@@ -993,7 +991,7 @@ async function init() {
 }
 
 // Tabs visibles para cada rol
-const TABS_ADMIN = ['productos','compras','ctacte','gastos','stock','anular','cierre','evolucion','accionistas','exportar','config'];
+const TABS_ADMIN = ['productos','compras','ctacte','gastos','stock','anular','cierre','exportar','config'];
 
 async function entrarComoRol(rol) {
   rolActual = rol;
