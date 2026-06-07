@@ -301,16 +301,19 @@
         <div style="margin-bottom:12px">
           <div style="font-size:0.85rem;font-weight:600;color:#555;margin-bottom:6px">Comparar por:</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn-secondary btn-sm acc-modo activo-modo" data-modo="semanal" onclick="setModoAcc('semanal')">Semana a semana</button>
-            <button class="btn-secondary btn-sm acc-modo" data-modo="mensual" onclick="setModoAcc('mensual')">Mes a mes</button>
+            <button class="btn-secondary btn-sm acc-modo" data-modo="semanal" onclick="setModoAcc('semanal')">Semana a semana</button>
+            <button class="btn-secondary btn-sm acc-modo activo-modo" data-modo="mensual" onclick="setModoAcc('mensual')">Mes a mes</button>
             <button class="btn-secondary btn-sm acc-modo" data-modo="anual" onclick="setModoAcc('anual')">Año a año</button>
           </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-          <button class="btn-secondary btn-sm" onclick="accRango('mes')">Este mes</button>
-          <button class="btn-secondary btn-sm" onclick="accRango('3meses')">Últimos 3 meses</button>
-          <button class="btn-secondary btn-sm" onclick="accRango('anio')">Este año</button>
-          <button class="btn-secondary btn-sm" onclick="accRango('todo')">Todo</button>
+          <button class="btn-secondary btn-sm" onclick="accRangoGenerar('hoy')">Hoy</button>
+          <button class="btn-secondary btn-sm" onclick="accRangoGenerar('semana')">Últimos 7 días</button>
+          <button class="btn-secondary btn-sm" onclick="accRangoGenerar('mes')">Este mes</button>
+          <button class="btn-secondary btn-sm" onclick="accRangoGenerar('mespasado')">Mes pasado</button>
+          <button class="btn-secondary btn-sm" onclick="accRangoGenerar('3meses')">Últimos 3 meses</button>
+          <button class="btn-secondary btn-sm" onclick="accRangoGenerar('anio')">Este año</button>
+          <button class="btn-secondary btn-sm" onclick="accRangoGenerar('todo')">Todo</button>
         </div>
         <div class="form-grid">
           <div class="field"><label>Desde</label><input type="date" id="acc-desde"></div>
@@ -416,7 +419,7 @@ document.querySelectorAll('.tab').forEach(tab => {
     document.querySelectorAll('#contenido > div').forEach(d => d.style.display = 'none');
     document.getElementById(`tab-${nombre}`).style.display = 'block';
     if (nombre === 'evolucion' && !document.getElementById('inf-desde').value) informeRapido('mes');
-    if (nombre === 'accionistas' && !document.getElementById('acc-desde').value) accRango('anio');
+    if (nombre === 'accionistas' && !accCargado) { accCargado = true; accRangoGenerar('mes'); }
   };
 });
 
@@ -596,9 +599,11 @@ function renderInforme(inf) {
 
   if (inf.porCategoria.length) {
     html += `<div class="card"><h2>Ventas por categoría</h2>
-      <div class="tabla-scroll"><table><thead><tr><th>Categoría</th><th>Ingreso</th><th>Margen</th></tr></thead><tbody>
-      ${inf.porCategoria.map(c =>
-        `<tr><td>${c.categoria}</td><td style="font-weight:700">${formatPesos(c.ingreso)}</td><td style="color:#2e7d32">${formatPesos(c.margen)}</td></tr>`).join('')}
+      <div class="tabla-scroll"><table><thead><tr><th>Categoría</th><th>Ingreso</th><th>Margen</th><th>% Margen</th></tr></thead><tbody>
+      ${inf.porCategoria.map(c => {
+        const pct = c.ingreso > 0 ? (c.margen / c.ingreso * 100) : 0;
+        return `<tr><td>${c.categoria}</td><td style="font-weight:700">${formatPesos(c.ingreso)}</td><td style="color:#2e7d32">${formatPesos(c.margen)}</td><td><span class="td-pct ${claseMargenPct(pct)}">${pct.toFixed(1)}%</span></td></tr>`;
+      }).join('')}
       </tbody></table></div></div>`;
   }
 
@@ -620,6 +625,7 @@ function renderInforme(inf) {
 
 // ── ACCIONISTAS ────────────────────────────────────────────────────────────
 let modoAcc = 'mensual';
+let accCargado = false;
 
 function setModoAcc(modo) {
   modoAcc = modo;
@@ -629,8 +635,16 @@ function setModoAcc(modo) {
 function accRango(tipo) {
   const hoy = new Date();
   let desde, hasta;
-  if (tipo === 'mes') {
+  if (tipo === 'hoy') {
+    desde = hasta = ymd(hoy);
+  } else if (tipo === 'semana') {
+    const d = new Date(hoy); d.setDate(d.getDate() - 6);
+    desde = ymd(d); hasta = ymd(hoy);
+  } else if (tipo === 'mes') {
     desde = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 1)); hasta = ymd(hoy);
+  } else if (tipo === 'mespasado') {
+    desde = ymd(new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1));
+    hasta = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 0));
   } else if (tipo === '3meses') {
     desde = ymd(new Date(hoy.getFullYear(), hoy.getMonth() - 2, 1)); hasta = ymd(hoy);
   } else if (tipo === 'anio') {
@@ -640,6 +654,11 @@ function accRango(tipo) {
   }
   document.getElementById('acc-desde').value = desde;
   document.getElementById('acc-hasta').value = hasta;
+}
+
+function accRangoGenerar(tipo) {
+  accRango(tipo);
+  generarAccionistas();
 }
 
 async function generarAccionistas() {
