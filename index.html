@@ -661,7 +661,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbzYU4oUPCb7jNORognxXS-g
 
 // ── Estado global ──────────────────────────────────────────────────────────
 let productos = [];
-let config = { PIN_Admin: '1234', PIN_Dueño: '0000', Meta_Diaria: 1500000 };
+let config = { PIN_Admin: '1234', PIN_Socios: '5678', Meta_Diaria: 1500000 };
 let carrito = [];
 let categoriaActiva = null;
 let pesoProductoActual = null;
@@ -1294,7 +1294,7 @@ document.getElementById('btn-dueno').onclick = () => {
     alert('El carrito debe estar vacío para entrar a HOY.');
     return;
   }
-  // Va directo: la clave se pide una sola vez en la pantalla Nroshoy
+  // Va directo: la clave se pide en la pantalla Socios
   window.location.href = 'dueno.html';
 };
 
@@ -1331,10 +1331,10 @@ function actualizarDotsPIN() {
 
 function verificarPin() {
   const pinAdmin = String(config.PIN_Admin).padStart(4, '0');
-  const pinDueno = String(config.PIN_Dueño).padStart(4, '0');
-  if (pinBuffer === pinAdmin || pinBuffer === pinDueno) {
+  const pinSocios = String(config.PIN_Socios || '5678').padStart(4, '0');
+  if (pinBuffer === pinAdmin || pinBuffer === pinSocios) {
     document.getElementById('modal-pin').classList.remove('visible');
-    pinCallback && pinCallback(pinBuffer === pinAdmin ? 'admin' : 'dueno');
+    pinCallback && pinCallback(pinBuffer === pinAdmin ? 'admin' : 'socios');
   } else {
     document.getElementById('pin-error').textContent = 'PIN incorrecto';
     pinBuffer = '';

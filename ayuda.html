@@ -69,9 +69,9 @@
     <a href="#gastos">7. Gastos</a>
     <a href="#anular">8. Anular una venta</a>
     <a href="#cierre">9. Cierre de caja</a>
-    <a href="#informes">10. Informes y Accionistas</a>
+    <a href="#informes">10. Evolución y Accionistas</a>
     <a href="#exportar">11. Exportar a Excel</a>
-    <a href="#nroshoy">12. Nroshoy (resumen del día)</a>
+    <a href="#nroshoy">12. Socios (HOY / Evolución / Accionistas)</a>
     <a href="#tablet">13. Tablet a pantalla completa y prestarla</a>
     <a href="#reset">14. Reiniciar datos de prueba</a>
   </div>
@@ -100,8 +100,7 @@
     <table class="t">
       <tr><th>Nivel</th><th>Qué ve</th></tr>
       <tr><td><span class="chip">Caja</span></td><td>Solo facturar. No ve costos ni ganancias.</td></tr>
-      <tr><td><span class="chip">Nroshoy</span></td><td>Resumen del día (ventas, meta, medios de pago).</td></tr>
-      <tr><td><span class="chip">Accionistas</span></td><td>Informes + Estado de resultados (rentabilidad).</td></tr>
+      <tr><td><span class="chip">Socios</span></td><td>HOY + Evolución + Estado de resultados. Para los 4 socios.</td></tr>
       <tr><td><span class="chip">Admin</span></td><td>Todo: gestión completa + informes + accionistas.</td></tr>
     </table>
     <p>Los 4 PINs se cambian en <strong>Admin → Configuración</strong>. Deben ser de 4 dígitos y distintos entre sí.</p>
@@ -232,14 +231,14 @@
   </div>
 
   <div class="seccion" id="nroshoy">
-    <h2>12. Nroshoy (resumen del día)</h2>
-    <p>Desde la caja, botón <strong>Nroshoy</strong> (o el link directo). Pide el PIN Nroshoy y muestra:</p>
+    <h2>12. Socios (HOY / Evolución / Accionistas)</h2>
+    <p>Desde la caja, botón <strong>HOY</strong> (o el link directo a <code>dueno.html</code>). Pide el PIN Socios y tiene 3 vistas:</p>
     <ul>
-      <li>Barra de progreso del día contra la meta.</li>
-      <li>Desglose por medio de pago.</li>
-      <li>Productos del día por ingreso.</li>
+      <li><strong>HOY:</strong> barra de progreso del día, ventas, margen bruto y productos del día. Se actualiza solo.</li>
+      <li><strong>Evolución:</strong> informe de cualquier período — ventas, medios de pago, top productos, gastos.</li>
+      <li><strong>Accionistas:</strong> estado de resultados comparativo (semana / mes / año) con utilidad neta y stock valorizado.</li>
     </ul>
-    <p>Se actualiza solo y sirve para compartir con socios sin darles acceso a la gestión.</p>
+    <p>Un solo PIN para los 4 socios. El PIN Admin también da acceso.</p>
     <div class="top"><a href="#indice">↑ volver al índice</a></div>
   </div>
 

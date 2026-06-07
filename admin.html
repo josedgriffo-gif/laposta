@@ -332,7 +332,7 @@
 
 <div id="app" style="display:none">
   <div id="header">
-    <h1>⚙ Panel Admin <span id="version-badge">v4.2</span></h1>
+    <h1>⚙ Panel Admin <span id="version-badge">v4.3</span></h1>
     <div style="display:flex;gap:8px">
       <button onclick="window.location.href='dueno.html'" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:8px 16px;font-size:0.9rem;font-weight:600">HOY</button>
       <button id="btn-volver" onclick="window.location.href='ayuda.html'" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:8px 16px;font-size:0.9rem;font-weight:600">📖 Ayuda</button>
@@ -348,7 +348,7 @@
     <button class="tab" data-tab="stock">Ajuste stock</button>
     <button class="tab" data-tab="anular">Anular venta</button>
     <button class="tab" data-tab="cierre">Cierre de caja</button>
-    <button class="tab" data-tab="informes">Informes</button>
+    <button class="tab" data-tab="evolucion">Evolución</button>
     <button class="tab" data-tab="accionistas">Accionistas</button>
     <button class="tab" data-tab="exportar">Exportar</button>
     <button class="tab" data-tab="config">Configuración</button>
@@ -777,8 +777,8 @@
       </div>
     </div>
 
-    <!-- ── TAB: INFORMES ──────────────────────────────────────────────── -->
-    <div id="tab-informes" style="display:none">
+    <!-- ── TAB: EVOLUCIÓN ──────────────────────────────────────────────── -->
+    <div id="tab-evolucion" style="display:none">
       <div class="card">
         <h2>Período del informe</h2>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
@@ -887,22 +887,13 @@
           <input type="number" id="cfg-pin-admin" placeholder="1234" class="pin-input">
         </div>
 
-        <!-- ACCIONISTAS -->
-        <div class="pin-row" style="border-left:5px solid #6a1b9a">
-          <div class="pin-info">
-            <div class="pin-nombre">📊 Accionistas</div>
-            <div class="pin-desc">Solo <strong>Informes</strong> y <strong>Estado de resultados</strong> (rentabilidad). Para los socios.</div>
-          </div>
-          <input type="number" id="cfg-pin-accionistas" placeholder="5678" class="pin-input">
-        </div>
-
-        <!-- NROSHOY -->
+        <!-- SOCIOS -->
         <div class="pin-row" style="border-left:5px solid #1565c0">
           <div class="pin-info">
-            <div class="pin-nombre">📈 Nroshoy</div>
-            <div class="pin-desc">Solo el <strong>resumen del día</strong> (ventas, meta, medios de pago). Para el encargado.</div>
+            <div class="pin-nombre">📊 Socios</div>
+            <div class="pin-desc">Accede a <strong>HOY</strong>, <strong>Evolución</strong> y <strong>Accionistas</strong>. Para los 4 socios.</div>
           </div>
-          <input type="number" id="cfg-pin-dueno" placeholder="0000" class="pin-input">
+          <input type="number" id="cfg-pin-socios" placeholder="5678" class="pin-input">
         </div>
 
         <!-- CAJA -->
@@ -915,7 +906,7 @@
         </div>
 
         <div class="nota" style="background:#fff8e1;border-left:4px solid #ffb300;border-radius:6px;padding:10px 14px;margin:12px 0;font-size:0.88rem">
-          Las 4 claves deben ser de 4 dígitos y <strong>distintas entre sí</strong>.
+          Las 3 claves deben ser de 4 dígitos y <strong>distintas entre sí</strong>.
         </div>
 
         <div class="field" style="margin-top:8px">
@@ -1000,32 +991,23 @@ async function init() {
 }
 
 // Tabs visibles para cada rol
-const TABS_ADMIN = ['productos','compras','ctacte','gastos','stock','anular','cierre','informes','accionistas','exportar','config'];
-const TABS_ACCIONISTAS = ['informes','accionistas'];
+const TABS_ADMIN = ['productos','compras','ctacte','gastos','stock','anular','cierre','evolucion','accionistas','exportar','config'];
 
 async function entrarComoRol(rol) {
   rolActual = rol;
   document.getElementById('pantalla-admin-pin').style.display = 'none';
   document.getElementById('loading').style.display = 'flex';
 
-  const visibles = (rol === 'accionistas') ? TABS_ACCIONISTAS : TABS_ADMIN;
-
-  // Mostrar solo las pestañas permitidas
   document.querySelectorAll('.tab').forEach(t => {
-    t.style.display = visibles.includes(t.dataset.tab) ? '' : 'none';
+    t.style.display = TABS_ADMIN.includes(t.dataset.tab) ? '' : 'none';
   });
 
   setFechasHoy();
 
-  if (rol === 'admin') {
-    try {
-      await Promise.all([cargarProductos(), cargarStock(), cargarCompras(), cargarAjustes()]);
-    } catch(e) { console.error(e); }
-    abrirTab('productos');
-  } else {
-    // Accionistas: solo informes + estado de resultados, sin datos de gestión
-    abrirTab('informes');
-  }
+  try {
+    await Promise.all([cargarProductos(), cargarStock(), cargarCompras(), cargarAjustes()]);
+  } catch(e) { console.error(e); }
+  abrirTab('productos');
 
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
@@ -1057,11 +1039,8 @@ function adminPinKey(val) {
 
 function verificarPinAdmin() {
   const pinAdmin = String(config.PIN_Admin || '1234').padStart(4, '0');
-  const pinAcc   = String(config.PIN_Accionistas || '5678').padStart(4, '0');
   if (adminPinBuffer === pinAdmin) {
     entrarComoRol('admin');
-  } else if (adminPinBuffer === pinAcc) {
-    entrarComoRol('accionistas');
   } else {
     document.getElementById('apin-error').textContent = 'PIN incorrecto';
     adminPinBuffer = '';
@@ -1166,10 +1145,9 @@ async function cargarAjustes() {
 async function cargarConfig() {
   config = await apiGet('getConfig');
   document.getElementById('cfg-pin-admin').value = config.PIN_Admin || '';
-  document.getElementById('cfg-pin-dueno').value = config.PIN_Dueño || '';
   document.getElementById('cfg-meta').value = config.Meta_Diaria || '';
   const cc = document.getElementById('cfg-pin-caja'); if (cc) cc.value = config.PIN_Caja || '';
-  const ca = document.getElementById('cfg-pin-accionistas'); if (ca) ca.value = config.PIN_Accionistas || '';
+  const cs = document.getElementById('cfg-pin-socios'); if (cs) cs.value = config.PIN_Socios || '';
 }
 
 // ── Tabs ───────────────────────────────────────────────────────────────────
@@ -1183,7 +1161,7 @@ document.querySelectorAll('.tab').forEach(tab => {
     if (nombre === 'cierre') cargarResumenDia();
     if (nombre === 'ctacte') renderCtaCte();
     if (nombre === 'gastos') cargarGastos();
-    if (nombre === 'informes') initInformes();
+    if (nombre === 'evolucion') initInformes();
     if (nombre === 'exportar') initExportar();
     if (nombre === 'accionistas') initAccionistas();
     if (nombre === 'anular') initAnular();
@@ -2188,32 +2166,29 @@ async function cerrarDia() {
 
 // ── Configuración ──────────────────────────────────────────────────────────
 async function guardarConfig() {
-  const pinAdmin = String(document.getElementById('cfg-pin-admin').value).padStart(4,'0');
-  const pinDueno = String(document.getElementById('cfg-pin-dueno').value).padStart(4,'0');
-  const pinCaja  = String(document.getElementById('cfg-pin-caja').value || '4321').padStart(4,'0');
-  const pinAcc   = String(document.getElementById('cfg-pin-accionistas').value || '5678').padStart(4,'0');
+  const pinAdmin  = String(document.getElementById('cfg-pin-admin').value).padStart(4,'0');
+  const pinSocios = String(document.getElementById('cfg-pin-socios').value || '5678').padStart(4,'0');
+  const pinCaja   = String(document.getElementById('cfg-pin-caja').value || '4321').padStart(4,'0');
   const meta = parseFloat(document.getElementById('cfg-meta').value) || 1500000;
 
-  if (pinAdmin.length !== 4 || pinDueno.length !== 4 || pinCaja.length !== 4 || pinAcc.length !== 4) {
+  if (pinAdmin.length !== 4 || pinSocios.length !== 4 || pinCaja.length !== 4) {
     mostrarMsg('msg-config-error', 'Los PINs deben ser de 4 dígitos.');
     return;
   }
-  // Evitar PINs repetidos entre niveles
-  const pins = [pinAdmin, pinDueno, pinCaja, pinAcc];
+  const pins = [pinAdmin, pinSocios, pinCaja];
   if (new Set(pins).size !== pins.length) {
-    mostrarMsg('msg-config-error', 'Los 4 PINs deben ser distintos entre sí.');
+    mostrarMsg('msg-config-error', 'Los 3 PINs deben ser distintos entre sí.');
     return;
   }
 
   try {
     await apiPost('guardarConfig', {
       pinAdmin: pinAdmin,
-      pinDueno: pinDueno,
+      pinSocios: pinSocios,
       pinCaja: pinCaja,
-      pinAccionistas: pinAcc,
       metaDiaria: meta
     });
-    config = { PIN_Admin: pinAdmin, PIN_Dueño: pinDueno, PIN_Caja: pinCaja, PIN_Accionistas: pinAcc, Meta_Diaria: meta };
+    config = { PIN_Admin: pinAdmin, PIN_Socios: pinSocios, PIN_Caja: pinCaja, Meta_Diaria: meta };
     mostrarMsg('msg-config-ok', null);
   } catch(e) {
     mostrarMsg('msg-config-error', 'Error: ' + e.message);

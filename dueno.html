@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>La Posta — HOY</title>
+<title>La Posta — Socios</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1b5e20">
 <meta name="mobile-web-app-capable" content="yes">
@@ -12,7 +12,10 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #1a1a1a; font-size: 16px; }
+  button { cursor: pointer; border: none; outline: none; font-family: inherit; }
+  input { font-family: inherit; }
 
+  /* ── Header ─────────────────────────────────────────────────────────── */
   #header {
     background: #1b5e20;
     color: white;
@@ -21,6 +24,7 @@
     align-items: center;
     justify-content: space-between;
     min-height: 56px;
+    flex-shrink: 0;
   }
   #header h1 { font-size: 1.2rem; font-weight: 700; }
   #btn-volver {
@@ -31,12 +35,32 @@
     padding: 8px 14px;
     font-size: 0.85rem;
     font-weight: 600;
-    cursor: pointer;
   }
-  #fecha-label { font-size: 0.85rem; opacity: 0.8; }
 
-  #contenido { padding: 16px; max-width: 700px; margin: 0 auto; }
+  /* ── Tabs ───────────────────────────────────────────────────────────── */
+  #tabs {
+    display: flex;
+    background: white;
+    border-bottom: 2px solid #e0e0e0;
+    flex-shrink: 0;
+  }
+  .tab {
+    flex: 1;
+    padding: 14px 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #666;
+    background: none;
+    border-bottom: 3px solid transparent;
+    text-align: center;
+  }
+  .tab.activo { color: #1b5e20; border-bottom-color: #1b5e20; }
 
+  /* ── App layout ──────────────────────────────────────────────────────── */
+  #app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+  #contenido { flex: 1; overflow-y: auto; padding: 16px; }
+
+  /* ── Card ────────────────────────────────────────────────────────────── */
   .card {
     background: white;
     border-radius: 14px;
@@ -44,8 +68,16 @@
     margin-bottom: 16px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   }
+  .card h2 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1b5e20;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e8f5e9;
+  }
 
-  /* ── Bloque principal ─────────────────────────────────────────────────── */
+  /* ── HOY: Bloque principal ───────────────────────────────────────────── */
   .fila-num {
     display: flex;
     justify-content: space-between;
@@ -55,93 +87,29 @@
   }
   .fila-num:last-child { border-bottom: none; }
   .fila-num.separador { border-top: 2px solid #1b5e20; margin-top: 4px; padding-top: 14px; }
-
-  .fila-label {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: #888;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-  }
+  .fila-label { font-size: 0.82rem; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.4px; }
   .fila-label.destacado { color: #1a1a1a; font-size: 0.88rem; }
-
-  .fila-derecha {
-    display: flex;
-    align-items: baseline;
-    gap: 14px;
-    flex-shrink: 0;
-  }
-  .fila-monto {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: #1b5e20;
-    text-align: right;
-  }
+  .fila-derecha { display: flex; align-items: baseline; gap: 14px; flex-shrink: 0; }
+  .fila-monto { font-size: 1.5rem; font-weight: 800; color: #1b5e20; text-align: right; }
   .fila-monto.gris { color: #555; font-size: 1.2rem; font-weight: 700; }
   .fila-monto.grande { font-size: 2rem; }
-
-  .badge-pct {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: white;
-    background: #2e7d32;
-    border-radius: 20px;
-    padding: 3px 10px;
-    white-space: nowrap;
-  }
+  .badge-pct { font-size: 0.9rem; font-weight: 700; color: white; background: #2e7d32; border-radius: 20px; padding: 3px 10px; white-space: nowrap; }
   .badge-pct.naranja { background: #e65100; }
-  .badge-info {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #888;
-    white-space: nowrap;
-  }
+  .badge-info { font-size: 0.85rem; font-weight: 600; color: #888; white-space: nowrap; }
 
-  /* ── Barra de meta ────────────────────────────────────────────────────── */
-  .barra-wrap {
-    background: #e8f5e9;
-    border-radius: 10px;
-    height: 18px;
-    overflow: hidden;
-    margin: 10px 0 4px;
-  }
-  .barra-fill {
-    height: 100%;
-    border-radius: 10px;
-    background: linear-gradient(90deg, #2e7d32, #66bb6a);
-    transition: width 0.6s ease;
-    min-width: 4px;
-  }
+  /* ── Barra de meta ───────────────────────────────────────────────────── */
+  .barra-wrap { background: #e8f5e9; border-radius: 10px; height: 18px; overflow: hidden; margin: 10px 0 4px; }
+  .barra-fill { height: 100%; border-radius: 10px; background: linear-gradient(90deg, #2e7d32, #66bb6a); transition: width 0.6s ease; min-width: 4px; }
   .barra-fill.superada { background: linear-gradient(90deg, #e65100, #ffa726); }
 
-  /* ── Tabla productos ──────────────────────────────────────────────────── */
-  .tabla-productos {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.9rem;
-  }
-  .tabla-productos thead tr {
-    border-bottom: 2px solid #e0e0e0;
-  }
-  .tabla-productos th {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #999;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    padding: 6px 8px;
-    text-align: right;
-  }
+  /* ── HOY: Tabla productos ────────────────────────────────────────────── */
+  .tabla-productos { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .tabla-productos thead tr { border-bottom: 2px solid #e0e0e0; }
+  .tabla-productos th { font-size: 0.75rem; font-weight: 700; color: #999; text-transform: uppercase; letter-spacing: 0.4px; padding: 6px 8px; text-align: right; }
   .tabla-productos th:first-child { text-align: left; padding-left: 0; }
-  .tabla-productos td {
-    padding: 10px 8px;
-    text-align: right;
-    border-bottom: 1px solid #f5f5f5;
-    vertical-align: middle;
-  }
+  .tabla-productos td { padding: 10px 8px; text-align: right; border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
   .tabla-productos td:first-child { text-align: left; padding-left: 0; }
   .tabla-productos tr:last-child td { border-bottom: none; }
-
   .prod-nombre { font-weight: 600; color: #1a1a1a; }
   .prod-cat { font-size: 0.72rem; color: #aaa; margin-top: 1px; }
   .td-ventas { font-weight: 700; color: #1b5e20; }
@@ -152,57 +120,52 @@
   .pct-medio { color: #e65100; background: #fff3e0; }
   .pct-bajo { color: #c62828; background: #ffebee; }
 
-  /* ── Actualización ────────────────────────────────────────────────────── */
+  /* ── Actualización ───────────────────────────────────────────────────── */
   #ultimo-update { text-align: center; font-size: 0.8rem; color: #bbb; margin-top: 8px; padding-bottom: 16px; }
-  #btn-actualizar {
-    display: block;
-    margin: 0 auto 16px;
-    background: #e8f5e9;
-    color: #2e7d32;
-    border: none;
-    border-radius: 8px;
-    padding: 10px 24px;
-    font-size: 0.95rem;
-    font-weight: 700;
-    cursor: pointer;
-  }
+  #btn-actualizar { display: block; margin: 0 auto 16px; background: #e8f5e9; color: #2e7d32; border: none; border-radius: 8px; padding: 10px 24px; font-size: 0.95rem; font-weight: 700; }
 
-  /* ── Loading ──────────────────────────────────────────────────────────── */
-  #loading {
-    position: fixed; inset: 0;
-    background: #1b5e20;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-    z-index: 999;
-    font-size: 1.1rem;
-  }
-  .spinner {
-    width: 36px; height: 36px;
-    border: 4px solid rgba(255,255,255,0.3);
-    border-top-color: white;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-  }
+  /* ── Evolución: formulario ───────────────────────────────────────────── */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 0.8rem; font-weight: 600; color: #555; }
+  .field input { padding: 10px 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 0.95rem; width: 100%; }
+  .field input:focus { border-color: #2e7d32; outline: none; }
+  .btn-primary { background: #2e7d32; color: white; border-radius: 8px; padding: 12px 20px; font-size: 1rem; font-weight: 700; width: 100%; margin-top: 8px; }
+  .btn-primary:active { background: #1b5e20; }
+  .btn-secondary { background: #f5f5f5; color: #333; border-radius: 8px; padding: 10px 16px; font-size: 0.9rem; font-weight: 600; border: 1px solid #ddd; }
+  .btn-sm { padding: 6px 12px; font-size: 0.85rem; border-radius: 6px; font-weight: 600; }
+
+  /* ── Evolución: resultado ────────────────────────────────────────────── */
+  .resumen-fila { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.95rem; }
+  .resumen-fila:last-child { border-bottom: none; }
+  .resumen-fila .label { color: #555; }
+  .resumen-fila .valor { font-weight: 700; }
+  .tabla-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  th { background: #f5f5f5; padding: 10px 8px; text-align: left; font-weight: 700; color: #555; font-size: 0.8rem; white-space: nowrap; }
+  td { padding: 10px 8px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+
+  /* ── Accionistas: estado de resultados ───────────────────────────────── */
+  .acc-modo.activo-modo { background: #2e7d32; color: white; border-color: #2e7d32; }
+  .er-tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .er-tabla th, .er-tabla td { padding: 8px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid #f0f0f0; }
+  .er-tabla th:first-child, .er-tabla td:first-child { text-align: left; position: sticky; left: 0; background: white; font-weight: 600; }
+  .er-tabla thead th { background: #1b5e20; color: white; text-align: right; }
+  .er-tabla thead th:first-child { background: #1b5e20; }
+  .er-fila-cm { background: #f1f8e9; font-weight: 700; }
+  .er-fila-util { background: #e8f5e9; font-weight: 800; }
+  .er-neg { color: #c62828; }
+
+  /* ── Loading ─────────────────────────────────────────────────────────── */
+  #loading { position: fixed; inset: 0; background: #1b5e20; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; z-index: 999; font-size: 1.1rem; }
+  .spinner { width: 36px; height: 36px; border: 4px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
   #sin-datos { text-align: center; color: #bbb; padding: 40px 20px; font-size: 1rem; display: none; }
 
-  /* ── PIN ───────────────────────────────────────────────────────────────── */
-  #pantalla-pin {
-    position: fixed; inset: 0;
-    background: #1b5e20;
-    color: white;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-    z-index: 998;
-  }
+  /* ── PIN ──────────────────────────────────────────────────────────────── */
+  #pantalla-pin { position: fixed; inset: 0; background: #1b5e20; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; z-index: 998; }
   #pantalla-pin h2 { font-size: 1.4rem; }
   #pin-dots { display: flex; gap: 14px; }
   .pin-dot { width: 20px; height: 20px; border-radius: 50%; background: rgba(255,255,255,0.3); border: 2px solid rgba(255,255,255,0.5); transition: background 0.1s; }
@@ -212,21 +175,14 @@
   .pin-key:active { background: rgba(255,255,255,0.3); }
   #pin-error { color: #ff8a80; font-size: 0.9rem; min-height: 20px; }
 
-  .card-titulo {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: #bbb;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 12px;
-  }
+  .card-titulo { font-size: 0.8rem; font-weight: 700; color: #bbb; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
 </style>
 </head>
 <body>
 
 <!-- Pantalla PIN -->
 <div id="pantalla-pin">
-  <h2>HOY</h2>
+  <h2>Socios</h2>
   <div id="pin-dots">
     <div class="pin-dot" id="d0"></div>
     <div class="pin-dot" id="d1"></div>
@@ -255,68 +211,117 @@
   <span>Cargando datos...</span>
 </div>
 
-<div id="header">
-  <div>
-    <h1>HOY <span style="font-size:0.7rem;opacity:0.6">v4.2</span></h1>
-    <div id="fecha-label"></div>
-  </div>
-  <button id="btn-volver" onclick="window.location.href='index.html'">← Caja</button>
-</div>
-
-<div id="contenido">
-
-  <div id="sin-datos">No hay ventas registradas hoy.</div>
-
-  <!-- Bloque principal -->
-  <div class="card" id="card-principal">
-
-    <!-- Meta -->
-    <div class="fila-num">
-      <span class="fila-label destacado">Objetivo del día</span>
-      <div class="fila-derecha">
-        <span class="fila-monto gris" id="num-meta">$ 0</span>
-      </div>
+<div id="app" style="display:none">
+  <div id="header">
+    <div>
+      <h1>Socios <span style="font-size:0.7rem;opacity:0.6">v4.3</span></h1>
+      <div id="fecha-label"></div>
     </div>
-    <div class="barra-wrap"><div class="barra-fill" id="barra-fill" style="width:0%"></div></div>
-
-    <!-- Ventas -->
-    <div class="fila-num" style="margin-top:4px">
-      <span class="fila-label destacado">Ventas hasta ahora</span>
-      <div class="fila-derecha">
-        <span class="badge-info" id="num-tickets">0 tickets</span>
-        <span class="badge-pct" id="badge-meta-pct">0%</span>
-        <span class="fila-monto grande" id="num-total">$ 0</span>
-      </div>
-    </div>
-
-    <!-- Costo -->
-    <div class="fila-num">
-      <span class="fila-label">Costo de mercadería vendida</span>
-      <div class="fila-derecha">
-        <span class="fila-monto gris" id="num-costo">$ 0</span>
-      </div>
-    </div>
-
-    <!-- Margen bruto -->
-    <div class="fila-num separador">
-      <span class="fila-label destacado">Margen bruto</span>
-      <div class="fila-derecha">
-        <span class="badge-pct" id="badge-margen-pct">0%</span>
-        <span class="fila-monto" id="num-margen">$ 0</span>
-      </div>
-    </div>
-
+    <button id="btn-volver" onclick="window.location.href='index.html'">← Caja</button>
   </div>
 
-  <!-- Productos -->
-  <div class="card" id="card-productos">
-    <div class="card-titulo">Productos del día</div>
-    <div id="productos-contenido"></div>
+  <div id="tabs">
+    <button class="tab activo" data-tab="hoy">HOY</button>
+    <button class="tab" data-tab="evolucion">Evolución</button>
+    <button class="tab" data-tab="accionistas">Accionistas</button>
   </div>
 
-  <button id="btn-actualizar" onclick="cargarDatos()">↻ Actualizar</button>
-  <div id="ultimo-update"></div>
+  <div id="contenido">
 
+    <!-- ── TAB: HOY ──────────────────────────────────────────────────────── -->
+    <div id="tab-hoy">
+      <div id="sin-datos">No hay ventas registradas hoy.</div>
+
+      <div class="card" id="card-principal">
+        <div class="fila-num">
+          <span class="fila-label destacado">Objetivo del día</span>
+          <div class="fila-derecha">
+            <span class="fila-monto gris" id="num-meta">$ 0</span>
+          </div>
+        </div>
+        <div class="barra-wrap"><div class="barra-fill" id="barra-fill" style="width:0%"></div></div>
+
+        <div class="fila-num" style="margin-top:4px">
+          <span class="fila-label destacado">Ventas hasta ahora</span>
+          <div class="fila-derecha">
+            <span class="badge-info" id="num-tickets">0 tickets</span>
+            <span class="badge-pct" id="badge-meta-pct">0%</span>
+            <span class="fila-monto grande" id="num-total">$ 0</span>
+          </div>
+        </div>
+
+        <div class="fila-num">
+          <span class="fila-label">Costo de mercadería vendida</span>
+          <div class="fila-derecha">
+            <span class="fila-monto gris" id="num-costo">$ 0</span>
+          </div>
+        </div>
+
+        <div class="fila-num separador">
+          <span class="fila-label destacado">Margen bruto</span>
+          <div class="fila-derecha">
+            <span class="badge-pct" id="badge-margen-pct">0%</span>
+            <span class="fila-monto" id="num-margen">$ 0</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="card-productos">
+        <div class="card-titulo">Productos del día</div>
+        <div id="productos-contenido"></div>
+      </div>
+
+      <button id="btn-actualizar" onclick="cargarDatosHoy()">↻ Actualizar</button>
+      <div id="ultimo-update"></div>
+    </div>
+
+    <!-- ── TAB: EVOLUCIÓN ────────────────────────────────────────────────── -->
+    <div id="tab-evolucion" style="display:none">
+      <div class="card">
+        <h2>Período del informe</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+          <button class="btn-secondary btn-sm" onclick="informeRapido('hoy')">Hoy</button>
+          <button class="btn-secondary btn-sm" onclick="informeRapido('semana')">Últimos 7 días</button>
+          <button class="btn-secondary btn-sm" onclick="informeRapido('mes')">Este mes</button>
+          <button class="btn-secondary btn-sm" onclick="informeRapido('mespasado')">Mes pasado</button>
+        </div>
+        <div class="form-grid">
+          <div class="field"><label>Desde</label><input type="date" id="inf-desde"></div>
+          <div class="field"><label>Hasta</label><input type="date" id="inf-hasta"></div>
+        </div>
+        <button class="btn-primary" onclick="generarInforme()">Generar informe</button>
+      </div>
+      <div id="informe-resultado"></div>
+    </div>
+
+    <!-- ── TAB: ACCIONISTAS ──────────────────────────────────────────────── -->
+    <div id="tab-accionistas" style="display:none">
+      <div class="card">
+        <h2>Estado de resultados</h2>
+        <div style="margin-bottom:12px">
+          <div style="font-size:0.85rem;font-weight:600;color:#555;margin-bottom:6px">Comparar por:</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn-secondary btn-sm acc-modo activo-modo" data-modo="semanal" onclick="setModoAcc('semanal')">Semana a semana</button>
+            <button class="btn-secondary btn-sm acc-modo" data-modo="mensual" onclick="setModoAcc('mensual')">Mes a mes</button>
+            <button class="btn-secondary btn-sm acc-modo" data-modo="anual" onclick="setModoAcc('anual')">Año a año</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="btn-secondary btn-sm" onclick="accRango('mes')">Este mes</button>
+          <button class="btn-secondary btn-sm" onclick="accRango('3meses')">Últimos 3 meses</button>
+          <button class="btn-secondary btn-sm" onclick="accRango('anio')">Este año</button>
+          <button class="btn-secondary btn-sm" onclick="accRango('todo')">Todo</button>
+        </div>
+        <div class="form-grid">
+          <div class="field"><label>Desde</label><input type="date" id="acc-desde"></div>
+          <div class="field"><label>Hasta</label><input type="date" id="acc-hasta"></div>
+        </div>
+        <button class="btn-primary" onclick="generarAccionistas()">Generar</button>
+      </div>
+      <div id="accionistas-resultado"></div>
+    </div>
+
+  </div>
 </div>
 
 <script>
@@ -332,7 +337,7 @@ async function initPin() {
     const json = await res.json();
     pinConfig = json.data;
   } catch(e) {
-    pinConfig = { PIN_Dueño: '0000', PIN_Admin: '1234' };
+    pinConfig = { PIN_Socios: '5678', PIN_Admin: '1234' };
   }
 }
 
@@ -356,11 +361,12 @@ function actualizarDots() {
 }
 
 function verificarPin() {
-  const pinNroshoy = String(pinConfig?.PIN_Dueño || '0000').padStart(4, '0');
-  if (pinBuffer === pinNroshoy) {
+  const pinSocios = String(pinConfig?.PIN_Socios || '5678').padStart(4, '0');
+  const pinAdmin  = String(pinConfig?.PIN_Admin  || '1234').padStart(4, '0');
+  if (pinBuffer === pinSocios || pinBuffer === pinAdmin) {
     document.getElementById('pantalla-pin').style.display = 'none';
     document.getElementById('loading').style.display = 'flex';
-    cargarDatos();
+    cargarDatosHoy();
   } else {
     document.getElementById('pin-error').textContent = 'PIN incorrecto';
     pinBuffer = '';
@@ -371,6 +377,7 @@ function verificarPin() {
 
 initPin();
 
+// ── API ────────────────────────────────────────────────────────────────────
 async function apiGet(action) {
   const res = await fetch(`${API_URL}?action=${action}`);
   const json = await res.json();
@@ -382,13 +389,32 @@ function formatPesos(n) {
   return '$ ' + Math.round(Number(n) || 0).toLocaleString('es-AR');
 }
 
+function ymd(d) {
+  return d.toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' })
+    .split('/').reverse().map(p => p.padStart(2, '0')).join('-');
+}
+
 function claseMargenPct(pct) {
   if (pct >= 35) return 'pct-ok';
   if (pct >= 20) return 'pct-medio';
   return 'pct-bajo';
 }
 
-async function cargarDatos() {
+// ── Tabs ───────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('activo'));
+    tab.classList.add('activo');
+    const nombre = tab.dataset.tab;
+    document.querySelectorAll('#contenido > div').forEach(d => d.style.display = 'none');
+    document.getElementById(`tab-${nombre}`).style.display = 'block';
+    if (nombre === 'evolucion' && !document.getElementById('inf-desde').value) informeRapido('mes');
+    if (nombre === 'accionistas' && !document.getElementById('acc-desde').value) accRango('anio');
+  };
+});
+
+// ── HOY ────────────────────────────────────────────────────────────────────
+async function cargarDatosHoy() {
   try {
     const [resumen, ventasHoy, config] = await Promise.all([
       apiGet('getResumenHoy'),
@@ -397,6 +423,7 @@ async function cargarDatos() {
     ]);
 
     document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
 
     const meta = Number(config?.Meta_Diaria) || 1500000;
     const hoy = new Date().toLocaleDateString('es-AR', {
@@ -417,99 +444,263 @@ async function cargarDatos() {
     document.getElementById('card-principal').style.display = 'block';
     document.getElementById('card-productos').style.display = 'block';
 
-    // ── Meta ──────────────────────────────────────────────────────────────
-    const total    = Number(resumen['Total_Ventas']) || 0;
-    const costo    = Number(resumen['Costo_Total']) || 0;
-    const margen   = total - costo;
+    const total     = Number(resumen['Total_Ventas']) || 0;
+    const costo     = Number(resumen['Costo_Total']) || 0;
+    const margen    = total - costo;
     const margenPct = total > 0 ? (margen / total * 100) : 0;
-    const metaPct  = total / meta * 100;
-    const superada = metaPct >= 100;
-    const tickets  = Number(resumen['Cant_Tickets']) || 0;
+    const metaPct   = total / meta * 100;
+    const superada  = metaPct >= 100;
+    const tickets   = Number(resumen['Cant_Tickets']) || 0;
 
-    document.getElementById('num-meta').textContent     = formatPesos(meta);
-    document.getElementById('barra-fill').style.width   = Math.min(100, metaPct) + '%';
-    document.getElementById('barra-fill').className     = 'barra-fill' + (superada ? ' superada' : '');
-    document.getElementById('num-total').textContent    = formatPesos(total);
-    document.getElementById('num-tickets').textContent  = tickets + (tickets === 1 ? ' ticket' : ' tickets');
-    document.getElementById('num-costo').textContent    = formatPesos(costo);
-    document.getElementById('num-margen').textContent   = formatPesos(margen);
+    document.getElementById('num-meta').textContent    = formatPesos(meta);
+    document.getElementById('barra-fill').style.width  = Math.min(100, metaPct) + '%';
+    document.getElementById('barra-fill').className    = 'barra-fill' + (superada ? ' superada' : '');
+    document.getElementById('num-total').textContent   = formatPesos(total);
+    document.getElementById('num-tickets').textContent = tickets + (tickets === 1 ? ' ticket' : ' tickets');
+    document.getElementById('num-costo').textContent   = formatPesos(costo);
+    document.getElementById('num-margen').textContent  = formatPesos(margen);
 
     const badgeMeta = document.getElementById('badge-meta-pct');
     badgeMeta.textContent = metaPct.toFixed(1) + '%';
     badgeMeta.className = 'badge-pct' + (superada ? ' naranja' : '');
-
     document.getElementById('badge-margen-pct').textContent = margenPct.toFixed(1) + '%';
 
-    // ── Productos ──────────────────────────────────────────────────────────
     const detalle = ventasHoy.detalle || [];
     const porProducto = {};
     detalle.forEach(d => {
       const nombre = d['Producto'];
-      if (!porProducto[nombre]) {
-        porProducto[nombre] = {
-          nombre,
-          categoria: d['Categoría'] || '',
-          ventas: 0,
-          costo: 0,
-          margen: 0
-        };
-      }
-      porProducto[nombre].ventas  += Number(d['Subtotal'])    || 0;
-      porProducto[nombre].costo   += Number(d['Costo Total']) || 0;
-      porProducto[nombre].margen  += Number(d['Margen $'])    || 0;
+      if (!porProducto[nombre]) porProducto[nombre] = { nombre, categoria: d['Categoría'] || '', ventas: 0, costo: 0, margen: 0 };
+      porProducto[nombre].ventas += Number(d['Subtotal'])    || 0;
+      porProducto[nombre].costo  += Number(d['Costo Total']) || 0;
+      porProducto[nombre].margen += Number(d['Margen $'])    || 0;
     });
 
     const top = Object.values(porProducto).sort((a, b) => b.ventas - a.ventas);
-
     const prodCont = document.getElementById('productos-contenido');
     if (top.length === 0) {
       prodCont.innerHTML = '<div style="color:#bbb;text-align:center;padding:10px">Sin ventas hoy</div>';
     } else {
       prodCont.innerHTML = `
         <table class="tabla-productos">
-          <thead>
-            <tr>
-              <th>Producto</th>
-              <th>$ Ventas</th>
-              <th>$ Costo</th>
-              <th>$ Margen</th>
-              <th>% Margen</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${top.map(p => {
-              const pct = p.ventas > 0 ? (p.margen / p.ventas * 100) : 0;
-              return `<tr>
-                <td>
-                  <div class="prod-nombre">${p.nombre}</div>
-                  ${p.categoria ? `<div class="prod-cat">${p.categoria}</div>` : ''}
-                </td>
-                <td class="td-ventas">${formatPesos(p.ventas)}</td>
-                <td class="td-costo">${formatPesos(p.costo)}</td>
-                <td class="td-margen">${formatPesos(p.margen)}</td>
-                <td><span class="td-pct ${claseMargenPct(pct)}">${pct.toFixed(1)}%</span></td>
-              </tr>`;
-            }).join('')}
-          </tbody>
+          <thead><tr>
+            <th>Producto</th><th>$ Ventas</th><th>$ Costo</th><th>$ Margen</th><th>% Margen</th>
+          </tr></thead>
+          <tbody>${top.map(p => {
+            const pct = p.ventas > 0 ? (p.margen / p.ventas * 100) : 0;
+            return `<tr>
+              <td><div class="prod-nombre">${p.nombre}</div>${p.categoria ? `<div class="prod-cat">${p.categoria}</div>` : ''}</td>
+              <td class="td-ventas">${formatPesos(p.ventas)}</td>
+              <td class="td-costo">${formatPesos(p.costo)}</td>
+              <td class="td-margen">${formatPesos(p.margen)}</td>
+              <td><span class="td-pct ${claseMargenPct(pct)}">${pct.toFixed(1)}%</span></td>
+            </tr>`;
+          }).join('')}</tbody>
         </table>`;
     }
 
-    // ── Timestamp ─────────────────────────────────────────────────────────
-    const hora = new Date().toLocaleTimeString('es-AR', {
-      timeZone: 'America/Argentina/Buenos_Aires',
-      hour: '2-digit', minute: '2-digit'
-    });
+    const hora = new Date().toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour: '2-digit', minute: '2-digit' });
     document.getElementById('ultimo-update').textContent = `Última actualización: ${hora}`;
 
   } catch(e) {
     document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
     document.getElementById('sin-datos').style.display = 'block';
     document.getElementById('sin-datos').textContent = 'Error al cargar datos: ' + e.message;
   }
 }
 
-cargarDatos();
-setInterval(cargarDatos, 120000);
+setInterval(cargarDatosHoy, 120000);
+
+// ── EVOLUCIÓN ──────────────────────────────────────────────────────────────
+function informeRapido(tipo) {
+  const hoy = new Date();
+  let desde, hasta;
+  if (tipo === 'hoy') {
+    desde = hasta = ymd(hoy);
+  } else if (tipo === 'semana') {
+    const d = new Date(hoy); d.setDate(d.getDate() - 6);
+    desde = ymd(d); hasta = ymd(hoy);
+  } else if (tipo === 'mes') {
+    desde = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 1)); hasta = ymd(hoy);
+  } else if (tipo === 'mespasado') {
+    desde = ymd(new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1));
+    hasta = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 0));
+  }
+  document.getElementById('inf-desde').value = desde;
+  document.getElementById('inf-hasta').value = hasta;
+  generarInforme();
+}
+
+async function generarInforme() {
+  const desde = document.getElementById('inf-desde').value;
+  const hasta  = document.getElementById('inf-hasta').value;
+  const cont   = document.getElementById('informe-resultado');
+  if (!desde || !hasta) { alert('Elegí las fechas Desde y Hasta'); return; }
+  if (desde > hasta)    { alert('La fecha Desde no puede ser mayor que Hasta'); return; }
+  cont.innerHTML = '<div class="card" style="text-align:center;color:#999;padding:30px">Generando informe...</div>';
+  try {
+    const inf = await apiGet(`getInforme&desde=${desde}&hasta=${hasta}`);
+    renderInforme(inf);
+  } catch(e) {
+    cont.innerHTML = `<div class="card" style="color:#c62828;padding:20px">Error: ${e.message}</div>`;
+  }
+}
+
+function renderInforme(inf) {
+  const cont = document.getElementById('informe-resultado');
+  const neto = inf.resultadoNeto;
+  const netoColor = neto >= 0 ? '#2e7d32' : '#c62828';
+
+  const tarjeta = (titulo, valor, color) => `
+    <div style="background:#f8f8f8;border-radius:10px;padding:14px;text-align:center">
+      <div style="font-size:1.3rem;font-weight:800;color:${color}">${valor}</div>
+      <div style="font-size:0.75rem;color:#888;margin-top:2px">${titulo}</div>
+    </div>`;
+
+  let html = `
+    <div class="card">
+      <h2>Resultado del período</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
+        ${tarjeta('Ventas', formatPesos(inf.totalVentas), '#1b5e20')}
+        ${tarjeta('Costo mercadería', formatPesos(inf.costoVentas), '#888')}
+        ${tarjeta('Margen bruto', formatPesos(inf.margenBruto), '#2e7d32')}
+        ${tarjeta('Gastos', formatPesos(inf.totalGastos), '#e65100')}
+      </div>
+      <div style="margin-top:14px;padding:16px;border-radius:10px;background:${neto>=0?'#e8f5e9':'#ffebee'};text-align:center">
+        <div style="font-size:0.85rem;color:#555;font-weight:600">RESULTADO NETO (margen − gastos)</div>
+        <div style="font-size:2rem;font-weight:800;color:${netoColor}">${formatPesos(neto)}</div>
+      </div>
+      <div style="display:flex;justify-content:space-around;margin-top:12px;font-size:0.85rem;color:#555">
+        <span>Tickets: <strong>${inf.cantTickets}</strong></span>
+        <span>Ticket promedio: <strong>${formatPesos(inf.ticketProm)}</strong></span>
+        <span>Margen: <strong>${inf.margenPct.toFixed(1)}%</strong></span>
+      </div>
+    </div>`;
+
+  const medios = [
+    ['Efectivo', inf.medios.efectivo], ['Mercado Pago', inf.medios.mercadoPago],
+    ['Transferencia', inf.medios.transferencia], ['Cuenta DNI', inf.medios.cuentaDni],
+    ['Tarjeta', inf.medios.tarjeta], ['Otro', inf.medios.otro]
+  ].filter(m => m[1] > 0);
+  if (medios.length) {
+    html += `<div class="card"><h2>Por medio de pago</h2>${medios.map(m =>
+      `<div class="resumen-fila"><span class="label">${m[0]}</span><span class="valor">${formatPesos(m[1])}</span></div>`).join('')}</div>`;
+  }
+
+  if (inf.porCategoria.length) {
+    html += `<div class="card"><h2>Ventas por categoría</h2>
+      <div class="tabla-scroll"><table><thead><tr><th>Categoría</th><th>Ingreso</th><th>Margen</th></tr></thead><tbody>
+      ${inf.porCategoria.map(c =>
+        `<tr><td>${c.categoria}</td><td style="font-weight:700">${formatPesos(c.ingreso)}</td><td style="color:#2e7d32">${formatPesos(c.margen)}</td></tr>`).join('')}
+      </tbody></table></div></div>`;
+  }
+
+  if (inf.topProductos.length) {
+    html += `<div class="card"><h2>Productos más vendidos</h2>
+      <div class="tabla-scroll"><table><thead><tr><th>#</th><th>Producto</th><th>Cant.</th><th>Ingreso</th><th>Margen</th></tr></thead><tbody>
+      ${inf.topProductos.slice(0, 20).map((p, i) =>
+        `<tr><td>${i+1}</td><td><strong>${p.nombre}</strong></td><td>${p.cantidad % 1 === 0 ? p.cantidad : p.cantidad.toFixed(3)}</td><td style="font-weight:700">${formatPesos(p.ingreso)}</td><td style="color:#2e7d32">${formatPesos(p.margen)}</td></tr>`).join('')}
+      </tbody></table></div></div>`;
+  }
+
+  if (inf.gastosPorCategoria.length) {
+    html += `<div class="card"><h2>Gastos por categoría</h2>${inf.gastosPorCategoria.map(g =>
+      `<div class="resumen-fila"><span class="label">${g.categoria}</span><span class="valor" style="color:#e65100">${formatPesos(g.monto)}</span></div>`).join('')}</div>`;
+  }
+
+  cont.innerHTML = html;
+}
+
+// ── ACCIONISTAS ────────────────────────────────────────────────────────────
+let modoAcc = 'mensual';
+
+function setModoAcc(modo) {
+  modoAcc = modo;
+  document.querySelectorAll('.acc-modo').forEach(b => b.classList.toggle('activo-modo', b.dataset.modo === modo));
+}
+
+function accRango(tipo) {
+  const hoy = new Date();
+  let desde, hasta;
+  if (tipo === 'mes') {
+    desde = ymd(new Date(hoy.getFullYear(), hoy.getMonth(), 1)); hasta = ymd(hoy);
+  } else if (tipo === '3meses') {
+    desde = ymd(new Date(hoy.getFullYear(), hoy.getMonth() - 2, 1)); hasta = ymd(hoy);
+  } else if (tipo === 'anio') {
+    desde = ymd(new Date(hoy.getFullYear(), 0, 1)); hasta = ymd(hoy);
+  } else if (tipo === 'todo') {
+    desde = '2000-01-01'; hasta = '2100-12-31';
+  }
+  document.getElementById('acc-desde').value = desde;
+  document.getElementById('acc-hasta').value = hasta;
+}
+
+async function generarAccionistas() {
+  const desde = document.getElementById('acc-desde').value;
+  const hasta  = document.getElementById('acc-hasta').value;
+  const cont   = document.getElementById('accionistas-resultado');
+  if (!desde || !hasta) { alert('Elegí las fechas'); return; }
+  cont.innerHTML = '<div class="card" style="text-align:center;color:#999;padding:30px">Calculando...</div>';
+  try {
+    const res = await apiGet(`getAccionistas&desde=${desde}&hasta=${hasta}&modalidad=${modoAcc}`);
+    renderAccionistas(res.periodos, res.stockValorizado);
+  } catch(e) {
+    cont.innerHTML = `<div class="card" style="color:#c62828;padding:20px">Error: ${e.message}</div>`;
+  }
+}
+
+function renderAccionistas(periodos, stockValorizado) {
+  const cont = document.getElementById('accionistas-resultado');
+  if (!periodos || periodos.length === 0) {
+    cont.innerHTML = '<div class="card" style="text-align:center;color:#999;padding:30px">Sin datos en el período elegido</div>';
+    return;
+  }
+
+  const tot = periodos.reduce((t, p) => ({
+    ventas: t.ventas + p.ventas, costoMP: t.costoMP + p.costoMP,
+    contribMarginal: t.contribMarginal + p.contribMarginal,
+    gastos: t.gastos + p.gastos, utilidadNeta: t.utilidadNeta + p.utilidadNeta
+  }), { ventas:0, costoMP:0, contribMarginal:0, gastos:0, utilidadNeta:0 });
+
+  const celda = (v) => `<td class="${v < 0 ? 'er-neg' : ''}">${formatPesos(v)}</td>`;
+  const fila = (concepto, key, clase) => `
+    <tr class="${clase || ''}">
+      <td>${concepto}</td>
+      ${periodos.map(p => celda(p[key])).join('')}
+      <td style="border-left:2px solid #ddd">${formatPesos(tot[key])}</td>
+    </tr>`;
+
+  const html = `
+    <div class="card">
+      <h2>Estado de resultados — ${modoAcc === 'semanal' ? 'por semana' : modoAcc === 'anual' ? 'por año' : 'por mes'}</h2>
+      <div class="tabla-scroll">
+        <table class="er-tabla">
+          <thead>
+            <tr>
+              <th>Concepto</th>
+              ${periodos.map(p => `<th>${p.label}</th>`).join('')}
+              <th style="border-left:2px solid #4a8">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${fila('Ventas', 'ventas')}
+            ${fila('(−) Costo de mercadería vendida', 'costoMP')}
+            ${fila('(=) Contribución marginal', 'contribMarginal', 'er-fila-cm')}
+            ${fila('(−) Gastos', 'gastos')}
+            ${fila('(=) Utilidad neta', 'utilidadNeta', 'er-fila-util')}
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:14px;padding:14px;border-radius:10px;background:#eef3f8;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <div>
+          <div style="font-weight:700;color:#1565c0">💰 Stock valorizado (a hoy)</div>
+          <div style="font-size:0.8rem;color:#777">Capital en mercadería: stock × costo de cada producto</div>
+        </div>
+        <div style="font-size:1.5rem;font-weight:800;color:#1565c0">${formatPesos(stockValorizado || 0)}</div>
+      </div>
+    </div>`;
+  cont.innerHTML = html;
+}
 </script>
 </body>
 </html>
