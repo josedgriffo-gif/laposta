@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>La Posta — Nroshoy</title>
+<title>La Posta — HOY</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1b5e20">
 <meta name="mobile-web-app-capable" content="yes">
@@ -40,34 +40,70 @@
   .card {
     background: white;
     border-radius: 14px;
-    padding: 18px;
+    padding: 20px;
     margin-bottom: 16px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
   }
-  .card h2 {
-    font-size: 0.9rem;
-    font-weight: 700;
-    color: #666;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 14px;
-  }
 
-  /* ── Meta ─────────────────────────────────────────────────────────────── */
-  #total-grande {
-    font-size: 2.8rem;
+  /* ── Bloque principal ─────────────────────────────────────────────────── */
+  .fila-num {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .fila-num:last-child { border-bottom: none; }
+  .fila-num.separador { border-top: 2px solid #1b5e20; margin-top: 4px; padding-top: 14px; }
+
+  .fila-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  .fila-label.destacado { color: #1a1a1a; font-size: 0.88rem; }
+
+  .fila-derecha {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+  .fila-monto {
+    font-size: 1.5rem;
     font-weight: 800;
     color: #1b5e20;
-    line-height: 1;
-    margin-bottom: 6px;
+    text-align: right;
   }
-  #meta-texto { font-size: 0.9rem; color: #888; margin-bottom: 12px; }
+  .fila-monto.gris { color: #555; font-size: 1.2rem; font-weight: 700; }
+  .fila-monto.grande { font-size: 2rem; }
+
+  .badge-pct {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: white;
+    background: #2e7d32;
+    border-radius: 20px;
+    padding: 3px 10px;
+    white-space: nowrap;
+  }
+  .badge-pct.naranja { background: #e65100; }
+  .badge-info {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #888;
+    white-space: nowrap;
+  }
+
+  /* ── Barra de meta ────────────────────────────────────────────────────── */
   .barra-wrap {
     background: #e8f5e9;
     border-radius: 10px;
-    height: 24px;
+    height: 18px;
     overflow: hidden;
-    position: relative;
+    margin: 10px 0 4px;
   }
   .barra-fill {
     height: 100%;
@@ -77,60 +113,44 @@
     min-width: 4px;
   }
   .barra-fill.superada { background: linear-gradient(90deg, #e65100, #ffa726); }
-  #pct-label {
-    font-size: 1rem;
+
+  /* ── Tabla productos ──────────────────────────────────────────────────── */
+  .tabla-productos {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  .tabla-productos thead tr {
+    border-bottom: 2px solid #e0e0e0;
+  }
+  .tabla-productos th {
+    font-size: 0.75rem;
     font-weight: 700;
-    color: #2e7d32;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 6px 8px;
     text-align: right;
-    margin-top: 6px;
   }
-  #pct-label.superada { color: #e65100; }
-
-  /* ── Resumen rápido ───────────────────────────────────────────────────── */
-  .grid-numeros {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-  }
-  .numero-box {
-    background: #f8f8f8;
-    border-radius: 10px;
-    padding: 12px;
-    text-align: center;
-  }
-  .numero-box .valor { font-size: 1.3rem; font-weight: 800; color: #1b5e20; }
-  .numero-box .etiq { font-size: 0.75rem; color: #888; margin-top: 2px; }
-
-  /* ── Medios de pago ───────────────────────────────────────────────────── */
-  .medio-fila {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 0;
+  .tabla-productos th:first-child { text-align: left; padding-left: 0; }
+  .tabla-productos td {
+    padding: 10px 8px;
+    text-align: right;
     border-bottom: 1px solid #f5f5f5;
-    font-size: 0.95rem;
+    vertical-align: middle;
   }
-  .medio-fila:last-child { border-bottom: none; }
-  .medio-nombre { color: #444; display: flex; align-items: center; gap: 8px; }
-  .medio-barra-wrap { flex: 1; margin: 0 12px; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; }
-  .medio-barra { height: 100%; border-radius: 4px; background: #4caf50; }
-  .medio-valor { font-weight: 700; color: #1b5e20; white-space: nowrap; }
+  .tabla-productos td:first-child { text-align: left; padding-left: 0; }
+  .tabla-productos tr:last-child td { border-bottom: none; }
 
-  /* ── Productos top ────────────────────────────────────────────────────── */
-  .prod-fila {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid #f5f5f5;
-    font-size: 0.95rem;
-  }
-  .prod-fila:last-child { border-bottom: none; }
-  .prod-pos { font-size: 1.1rem; font-weight: 800; color: #ccc; width: 28px; }
-  .prod-info { flex: 1; }
-  .prod-nombre { font-weight: 600; }
-  .prod-cat { font-size: 0.75rem; color: #aaa; }
-  .prod-ingreso { font-weight: 700; color: #1b5e20; }
+  .prod-nombre { font-weight: 600; color: #1a1a1a; }
+  .prod-cat { font-size: 0.72rem; color: #aaa; margin-top: 1px; }
+  .td-ventas { font-weight: 700; color: #1b5e20; }
+  .td-costo { color: #666; }
+  .td-margen { font-weight: 700; color: #1565c0; }
+  .td-pct { font-weight: 700; border-radius: 12px; padding: 2px 8px; font-size: 0.85rem; white-space: nowrap; }
+  .pct-ok { color: #2e7d32; background: #e8f5e9; }
+  .pct-medio { color: #e65100; background: #fff3e0; }
+  .pct-bajo { color: #c62828; background: #ffebee; }
 
   /* ── Actualización ────────────────────────────────────────────────────── */
   #ultimo-update { text-align: center; font-size: 0.8rem; color: #bbb; margin-top: 8px; padding-bottom: 16px; }
@@ -191,13 +211,22 @@
   .pin-key { background: rgba(255,255,255,0.15); color: white; border-radius: 12px; padding: 20px; font-size: 1.5rem; font-weight: 700; text-align: center; cursor: pointer; border: none; }
   .pin-key:active { background: rgba(255,255,255,0.3); }
   #pin-error { color: #ff8a80; font-size: 0.9rem; min-height: 20px; }
+
+  .card-titulo {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #bbb;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+  }
 </style>
 </head>
 <body>
 
 <!-- Pantalla PIN -->
 <div id="pantalla-pin">
-  <h2>🔐 Nroshoy</h2>
+  <h2>HOY</h2>
   <div id="pin-dots">
     <div class="pin-dot" id="d0"></div>
     <div class="pin-dot" id="d1"></div>
@@ -228,7 +257,7 @@
 
 <div id="header">
   <div>
-    <h1>📊 Nroshoy <span style="font-size:0.7rem;opacity:0.6">v4.0</span></h1>
+    <h1>HOY <span style="font-size:0.7rem;opacity:0.6">v4.1</span></h1>
     <div id="fecha-label"></div>
   </div>
   <button id="btn-volver" onclick="window.location.href='index.html'">← Caja</button>
@@ -238,43 +267,50 @@
 
   <div id="sin-datos">No hay ventas registradas hoy.</div>
 
-  <!-- Meta del día -->
-  <div class="card" id="card-meta">
-    <h2>Progreso del día</h2>
-    <div id="total-grande">$ 0</div>
-    <div id="meta-texto">de $ 0 de meta</div>
-    <div class="barra-wrap"><div class="barra-fill" id="barra-fill" style="width:0%"></div></div>
-    <div id="pct-label">0%</div>
-  </div>
+  <!-- Bloque principal -->
+  <div class="card" id="card-principal">
 
-  <!-- Números rápidos -->
-  <div class="card" id="card-numeros">
-    <h2>Resumen</h2>
-    <div class="grid-numeros">
-      <div class="numero-box">
-        <div class="valor" id="num-margen">$ 0</div>
-        <div class="etiq">Margen $</div>
-      </div>
-      <div class="numero-box">
-        <div class="valor" id="num-margen-pct">0%</div>
-        <div class="etiq">Margen %</div>
-      </div>
-      <div class="numero-box">
-        <div class="valor" id="num-tickets">0</div>
-        <div class="etiq">Tickets</div>
+    <!-- Meta -->
+    <div class="fila-num">
+      <span class="fila-label destacado">Objetivo del día</span>
+      <div class="fila-derecha">
+        <span class="fila-monto gris" id="num-meta">$ 0</span>
       </div>
     </div>
+    <div class="barra-wrap"><div class="barra-fill" id="barra-fill" style="width:0%"></div></div>
+
+    <!-- Ventas -->
+    <div class="fila-num" style="margin-top:4px">
+      <span class="fila-label destacado">Ventas hasta ahora</span>
+      <div class="fila-derecha">
+        <span class="badge-info" id="num-tickets">0 tickets</span>
+        <span class="badge-pct" id="badge-meta-pct">0%</span>
+        <span class="fila-monto grande" id="num-total">$ 0</span>
+      </div>
+    </div>
+
+    <!-- Costo -->
+    <div class="fila-num">
+      <span class="fila-label">Costo de mercadería vendida</span>
+      <div class="fila-derecha">
+        <span class="fila-monto gris" id="num-costo">$ 0</span>
+      </div>
+    </div>
+
+    <!-- Margen bruto -->
+    <div class="fila-num separador">
+      <span class="fila-label destacado">Margen bruto</span>
+      <div class="fila-derecha">
+        <span class="badge-pct" id="badge-margen-pct">0%</span>
+        <span class="fila-monto" id="num-margen">$ 0</span>
+      </div>
+    </div>
+
   </div>
 
-  <!-- Medios de pago -->
-  <div class="card" id="card-medios">
-    <h2>Por medio de pago</h2>
-    <div id="medios-contenido"></div>
-  </div>
-
-  <!-- Top productos -->
+  <!-- Productos -->
   <div class="card" id="card-productos">
-    <h2>Productos del día</h2>
+    <div class="card-titulo">Productos del día</div>
     <div id="productos-contenido"></div>
   </div>
 
@@ -296,7 +332,6 @@ async function initPin() {
     const json = await res.json();
     pinConfig = json.data;
   } catch(e) {
-    // Si no se puede cargar config, usar PIN por defecto
     pinConfig = { PIN_Dueño: '0000', PIN_Admin: '1234' };
   }
 }
@@ -321,7 +356,6 @@ function actualizarDots() {
 }
 
 function verificarPin() {
-  // Una sola clave para Nroshoy
   const pinNroshoy = String(pinConfig?.PIN_Dueño || '0000').padStart(4, '0');
   if (pinBuffer === pinNroshoy) {
     document.getElementById('pantalla-pin').style.display = 'none';
@@ -335,7 +369,6 @@ function verificarPin() {
   }
 }
 
-// Iniciar cargando el PIN antes de mostrar nada
 initPin();
 
 async function apiGet(action) {
@@ -347,6 +380,12 @@ async function apiGet(action) {
 
 function formatPesos(n) {
   return '$ ' + Math.round(Number(n) || 0).toLocaleString('es-AR');
+}
+
+function claseMargenPct(pct) {
+  if (pct >= 35) return 'pct-ok';
+  if (pct >= 20) return 'pct-medio';
+  return 'pct-bajo';
 }
 
 async function cargarDatos() {
@@ -368,89 +407,91 @@ async function cargarDatos() {
 
     if (!resumen) {
       document.getElementById('sin-datos').style.display = 'block';
-      ['card-meta','card-numeros','card-medios','card-productos'].forEach(id => {
-        document.getElementById(id).style.display = 'none';
-      });
+      document.getElementById('card-principal').style.display = 'none';
+      document.getElementById('card-productos').style.display = 'none';
       document.getElementById('ultimo-update').textContent = 'Sin ventas hoy';
       return;
     }
 
     document.getElementById('sin-datos').style.display = 'none';
-    ['card-meta','card-numeros','card-medios','card-productos'].forEach(id => {
-      document.getElementById(id).style.display = 'block';
-    });
+    document.getElementById('card-principal').style.display = 'block';
+    document.getElementById('card-productos').style.display = 'block';
 
     // ── Meta ──────────────────────────────────────────────────────────────
-    const total = Number(resumen['Total_Ventas']) || 0;
-    const pct = total / meta * 100;
-    const superada = pct >= 100;
+    const total    = Number(resumen['Total_Ventas']) || 0;
+    const costo    = Number(resumen['Costo_Total']) || 0;
+    const margen   = total - costo;
+    const margenPct = total > 0 ? (margen / total * 100) : 0;
+    const metaPct  = total / meta * 100;
+    const superada = metaPct >= 100;
+    const tickets  = Number(resumen['Cant_Tickets']) || 0;
 
-    document.getElementById('total-grande').textContent = formatPesos(total);
-    document.getElementById('meta-texto').textContent = `de ${formatPesos(meta)} de meta`;
-    document.getElementById('barra-fill').style.width = Math.min(100, pct) + '%';
-    document.getElementById('barra-fill').className = 'barra-fill' + (superada ? ' superada' : '');
-    document.getElementById('pct-label').textContent = pct.toFixed(1) + '%' + (superada ? ' ✓ META SUPERADA' : '');
-    document.getElementById('pct-label').className = 'pct-label' + (superada ? ' superada' : '');
+    document.getElementById('num-meta').textContent     = formatPesos(meta);
+    document.getElementById('barra-fill').style.width   = Math.min(100, metaPct) + '%';
+    document.getElementById('barra-fill').className     = 'barra-fill' + (superada ? ' superada' : '');
+    document.getElementById('num-total').textContent    = formatPesos(total);
+    document.getElementById('num-tickets').textContent  = tickets + (tickets === 1 ? ' ticket' : ' tickets');
+    document.getElementById('num-costo').textContent    = formatPesos(costo);
+    document.getElementById('num-margen').textContent   = formatPesos(margen);
 
-    // ── Números ────────────────────────────────────────────────────────────
-    document.getElementById('num-margen').textContent = formatPesos(resumen['Margen_$'] || 0);
-    document.getElementById('num-margen-pct').textContent = Number(resumen['Margen_%'] || 0).toFixed(1) + '%';
-    document.getElementById('num-tickets').textContent = resumen['Cant_Tickets'] || 0;
+    const badgeMeta = document.getElementById('badge-meta-pct');
+    badgeMeta.textContent = metaPct.toFixed(1) + '%';
+    badgeMeta.className = 'badge-pct' + (superada ? ' naranja' : '');
 
-    // ── Medios de pago ─────────────────────────────────────────────────────
-    const medios = [
-      { nombre: 'Efectivo',      key: 'Efectivo',      color: '#4caf50' },
-      { nombre: 'Mercado Pago',  key: 'Mercado_Pago',  color: '#2196f3' },
-      { nombre: 'Transferencia', key: 'Transferencia', color: '#9c27b0' },
-      { nombre: 'Cuenta DNI',    key: 'Cuenta_DNI',    color: '#ff9800' },
-      { nombre: 'Tarjeta',       key: 'Tarjeta',       color: '#f44336' },
-      { nombre: 'Otro',          key: 'Otro',           color: '#607d8b' },
-    ];
+    document.getElementById('badge-margen-pct').textContent = margenPct.toFixed(1) + '%';
 
-    const mediosCont = document.getElementById('medios-contenido');
-    const maxMedio = Math.max(...medios.map(m => Number(resumen[m.key]) || 0), 1);
-
-    mediosCont.innerHTML = medios
-      .map(m => {
-        const val = Number(resumen[m.key]) || 0;
-        if (val === 0) return '';
-        const bPct = (val / maxMedio * 100).toFixed(1);
-        return `<div class="medio-fila">
-          <span class="medio-nombre"><span style="width:10px;height:10px;border-radius:50%;background:${m.color};display:inline-block"></span>${m.nombre}</span>
-          <div class="medio-barra-wrap"><div class="medio-barra" style="width:${bPct}%;background:${m.color}"></div></div>
-          <span class="medio-valor">${formatPesos(val)}</span>
-        </div>`;
-      }).join('') || '<div style="color:#bbb;text-align:center;padding:10px">Sin datos</div>';
-
-    // ── Top productos ──────────────────────────────────────────────────────
+    // ── Productos ──────────────────────────────────────────────────────────
     const detalle = ventasHoy.detalle || [];
     const porProducto = {};
     detalle.forEach(d => {
       const nombre = d['Producto'];
       if (!porProducto[nombre]) {
-        porProducto[nombre] = { nombre, categoria: d['Categoría'] || '', ingreso: 0, cantidad: 0 };
+        porProducto[nombre] = {
+          nombre,
+          categoria: d['Categoría'] || '',
+          ventas: 0,
+          costo: 0,
+          margen: 0
+        };
       }
-      porProducto[nombre].ingreso += Number(d['Subtotal']) || 0;
-      porProducto[nombre].cantidad += Number(d['Cantidad']) || 0;
+      porProducto[nombre].ventas  += Number(d['Subtotal'])    || 0;
+      porProducto[nombre].costo   += Number(d['Costo Total']) || 0;
+      porProducto[nombre].margen  += Number(d['Margen $'])    || 0;
     });
 
-    const top = Object.values(porProducto)
-      .sort((a, b) => b.ingreso - a.ingreso)
-      .slice(0, 10);
+    const top = Object.values(porProducto).sort((a, b) => b.ventas - a.ventas);
 
     const prodCont = document.getElementById('productos-contenido');
     if (top.length === 0) {
       prodCont.innerHTML = '<div style="color:#bbb;text-align:center;padding:10px">Sin ventas hoy</div>';
     } else {
-      prodCont.innerHTML = top.map((p, i) => `
-        <div class="prod-fila">
-          <div class="prod-pos">${i + 1}</div>
-          <div class="prod-info">
-            <div class="prod-nombre">${p.nombre}</div>
-            <div class="prod-cat">${p.categoria} · ${p.cantidad % 1 === 0 ? p.cantidad : p.cantidad.toFixed(3)} vendidos</div>
-          </div>
-          <div class="prod-ingreso">${formatPesos(p.ingreso)}</div>
-        </div>`).join('');
+      prodCont.innerHTML = `
+        <table class="tabla-productos">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>$ Ventas</th>
+              <th>$ Costo</th>
+              <th>$ Margen</th>
+              <th>% Margen</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${top.map(p => {
+              const pct = p.ventas > 0 ? (p.margen / p.ventas * 100) : 0;
+              return `<tr>
+                <td>
+                  <div class="prod-nombre">${p.nombre}</div>
+                  ${p.categoria ? `<div class="prod-cat">${p.categoria}</div>` : ''}
+                </td>
+                <td class="td-ventas">${formatPesos(p.ventas)}</td>
+                <td class="td-costo">${formatPesos(p.costo)}</td>
+                <td class="td-margen">${formatPesos(p.margen)}</td>
+                <td><span class="td-pct ${claseMargenPct(pct)}">${pct.toFixed(1)}%</span></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>`;
     }
 
     // ── Timestamp ─────────────────────────────────────────────────────────
@@ -468,8 +509,6 @@ async function cargarDatos() {
 }
 
 cargarDatos();
-
-// Auto-actualizar cada 2 minutos
 setInterval(cargarDatos, 120000);
 </script>
 </body>
