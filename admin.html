@@ -36,7 +36,43 @@
     padding: 8px 16px;
     font-size: 0.9rem;
     font-weight: 600;
+    cursor: pointer;
   }
+  .dropdown { position: relative; }
+  .dropdown-btn {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .dropdown-btn:active { background: rgba(255,255,255,0.25); }
+  .dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: #1b5e20;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    overflow: hidden;
+    z-index: 999;
+    min-width: 160px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .dropdown-menu a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+  .dropdown-menu a:hover { background: rgba(255,255,255,0.15); }
+  .dropdown.open .dropdown-menu { display: block; }
 
   /* ── Tabs ─────────────────────────────────────────────────────────────── */
   #tabs {
@@ -333,10 +369,18 @@
 <div id="app" style="display:none">
   <div id="header">
     <h1>⚙ Panel Admin <span id="version-badge">v4.3</span></h1>
-    <div style="display:flex;gap:8px">
-      <button onclick="window.location.href='dueno.html'" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:8px 16px;font-size:0.9rem;font-weight:600">HOY</button>
-      <button onclick="window.location.href='ayuda.html'" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:8px 16px;font-size:0.9rem;font-weight:600">📖 Ayuda</button>
-      <button id="btn-volver" onclick="window.location.href='index.html'">← Volver a caja</button>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button onclick="window.location.href='dueno.html'" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:8px 16px;font-size:0.9rem;font-weight:600;cursor:pointer">HOY</button>
+      <div class="dropdown" id="dropdown-informes" style="position:relative">
+        <button class="dropdown-btn" onclick="toggleDropdown('dropdown-informes')">Informes ▾</button>
+        <div class="dropdown-menu">
+          <a href="dueno.html">HOY</a>
+          <a href="dueno.html#evolucion">Evolución</a>
+          <a href="dueno.html#accionistas">Accionistas</a>
+        </div>
+      </div>
+      <button onclick="window.location.href='ayuda.html'" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:8px 16px;font-size:0.9rem;font-weight:600;cursor:pointer">Ayuda</button>
+      <button id="btn-volver" onclick="window.location.href='index.html'">Caja</button>
     </div>
   </div>
 
@@ -1010,6 +1054,16 @@ async function entrarComoRol(rol) {
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
 }
+
+function toggleDropdown(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  document.querySelectorAll('.dropdown.open').forEach(d => {
+    if (!d.contains(e.target)) d.classList.remove('open');
+  });
+});
 
 // Abre una pestaña por nombre (simula el click)
 function abrirTab(nombre) {

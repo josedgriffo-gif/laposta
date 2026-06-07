@@ -46,6 +46,41 @@
     font-size: 0.85rem;
   }
   #btn-admin:active, #btn-dueno:active { background: rgba(255,255,255,0.25); }
+  .dropdown { position: relative; }
+  .dropdown-btn {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .dropdown-btn:active { background: rgba(255,255,255,0.25); }
+  .dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: #1b5e20;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    overflow: hidden;
+    z-index: 999;
+    min-width: 160px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .dropdown-menu a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+  .dropdown-menu a:hover { background: rgba(255,255,255,0.15); }
+  .dropdown.open .dropdown-menu { display: block; }
   #offline-badge {
     background: #f44336;
     color: white;
@@ -470,8 +505,6 @@
   <div style="display:flex;gap:14px">
     <div class="cpin-dot" id="cd0"></div>
     <div class="cpin-dot" id="cd1"></div>
-    <div class="cpin-dot" id="cd2"></div>
-    <div class="cpin-dot" id="cd3"></div>
   </div>
   <div id="cpin-error" style="color:#ff8a80;font-size:0.9rem;min-height:20px"></div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:260px">
@@ -506,7 +539,15 @@
     <div id="header-right">
       <span id="offline-badge">SIN CONEXIÓN</span>
       <button id="btn-dueno">HOY</button>
-      <button onclick="window.location.href='ayuda.html'" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:8px 14px;font-size:0.85rem;font-weight:600;cursor:pointer">📖 Ayuda</button>
+      <div class="dropdown" id="dropdown-informes">
+        <button class="dropdown-btn" onclick="toggleDropdown('dropdown-informes')">Informes ▾</button>
+        <div class="dropdown-menu">
+          <a href="dueno.html">HOY</a>
+          <a href="dueno.html#evolucion">Evolución</a>
+          <a href="dueno.html#accionistas">Accionistas</a>
+        </div>
+      </div>
+      <button onclick="window.location.href='ayuda.html'" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:8px 14px;font-size:0.85rem;font-weight:600;cursor:pointer">Ayuda</button>
       <button id="btn-admin">Admin</button>
     </div>
   </div>
@@ -1178,37 +1219,31 @@ document.getElementById('btn-cancelar-modal').onclick = () => {
 };
 
 // ── Confirmar venta ────────────────────────────────────────────────────────
-document.getElementById('btn-confirmar-venta').onclick = async () => {
+document.getElementById('btn-confirmar-venta').onclick = () => {
   const datos = construirDatosVenta();
   const btn = document.getElementById('btn-confirmar-venta');
   btn.disabled = true;
-  btn.textContent = 'Guardando...';
 
-  try {
-    if (navigator.onLine) {
-      // El servidor genera el ticket definitivo (único global) y lo devuelve
-      const res = await apiPost('guardarVenta', datos);
-      if (res && res.ticket) datos.ticket = res.ticket;
-    } else {
-      datos.ticketProvisional = true;
-      ventasPendientes.push(datos);
-      localStorage.setItem('ventas_pendientes', JSON.stringify(ventasPendientes));
-    }
-    document.getElementById('modal-cobro').classList.remove('visible');
-    mostrarTicket(datos);
-    carrito = [];
-    renderCarrito();
-  } catch(e) {
-    datos.ticketProvisional = true;
+  // Mostrar ticket inmediatamente sin esperar al servidor
+  datos.ticketProvisional = true;
+  document.getElementById('modal-cobro').classList.remove('visible');
+  mostrarTicket(datos);
+  carrito = [];
+  renderCarrito();
+  btn.disabled = false;
+  btn.textContent = 'Confirmar';
+
+  // Enviar al servidor en segundo plano
+  if (navigator.onLine) {
+    apiPost('guardarVenta', datos)
+      .then(res => { if (res && res.ticket) datos.ticket = res.ticket; })
+      .catch(() => {
+        ventasPendientes.push(datos);
+        localStorage.setItem('ventas_pendientes', JSON.stringify(ventasPendientes));
+      });
+  } else {
     ventasPendientes.push(datos);
     localStorage.setItem('ventas_pendientes', JSON.stringify(ventasPendientes));
-    document.getElementById('modal-cobro').classList.remove('visible');
-    mostrarTicket(datos);
-    carrito = [];
-    renderCarrito();
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Confirmar';
   }
 };
 
@@ -1289,6 +1324,16 @@ document.getElementById('btn-admin').onclick = () => {
   window.location.href = 'admin.html';
 };
 
+function toggleDropdown(id) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  document.querySelectorAll('.dropdown.open').forEach(d => {
+    if (!d.contains(e.target)) d.classList.remove('open');
+  });
+});
+
 document.getElementById('btn-dueno').onclick = () => {
   if (carrito.length > 0) {
     alert('El carrito debe estar vacío para entrar a HOY.');
@@ -1315,11 +1360,11 @@ document.querySelectorAll('.pin-key').forEach(key => {
     } else if (val === 'OK') {
       verificarPin();
       return;
-    } else if (pinBuffer.length < 4) {
+    } else if (pinBuffer.length < 2) {
       pinBuffer += val;
     }
     actualizarDotsPIN();
-    if (pinBuffer.length === 4) verificarPin();
+    if (pinBuffer.length === 2) verificarPin();
   };
 });
 

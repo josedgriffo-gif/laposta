@@ -44,15 +44,58 @@
   table.t { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 10px 0; }
   table.t th, table.t td { border: 1px solid #eee; padding: 8px 10px; text-align: left; }
   table.t th { background: #f5f5f5; }
+  .dropdown { position: relative; }
+  .dropdown-btn {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .dropdown-btn:active { background: rgba(255,255,255,0.25); }
+  .dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    background: #1b5e20;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    overflow: hidden;
+    z-index: 999;
+    min-width: 160px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  }
+  .dropdown-menu a {
+    display: block;
+    color: white;
+    text-decoration: none;
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    white-space: nowrap;
+  }
+  .dropdown-menu a:hover { background: rgba(255,255,255,0.15); }
+  .dropdown.open .dropdown-menu { display: block; }
 </style>
 </head>
 <body>
 
 <div id="header">
   <h1>📖 La Posta — Ayuda</h1>
-  <div style="display:flex;gap:8px">
-    <button id="btn-hoy" onclick="window.location.href='dueno.html'" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:8px 16px;font-size:0.9rem;font-weight:600">HOY</button>
-    <button id="btn-volver" onclick="window.location.href='admin.html'">← Volver</button>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button onclick="window.location.href='dueno.html'" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:8px 16px;font-size:0.9rem;font-weight:600;cursor:pointer">HOY</button>
+    <div class="dropdown" id="dropdown-informes" style="position:relative">
+      <button class="dropdown-btn" onclick="toggleDropdown('dropdown-informes')">Informes ▾</button>
+      <div class="dropdown-menu">
+        <a href="dueno.html">HOY</a>
+        <a href="dueno.html#evolucion">Evolución</a>
+        <a href="dueno.html#accionistas">Accionistas</a>
+      </div>
+    </div>
+    <button onclick="window.location.href='index.html'" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:8px 16px;font-size:0.9rem;font-weight:600;cursor:pointer">Caja</button>
   </div>
 </div>
 
@@ -270,6 +313,16 @@
 
 </div>
 
-<script>document.getElementById('ver').textContent = 'v4.0';</script>
+<script>
+document.getElementById('ver').textContent = 'v4.0';
+function toggleDropdown(id) {
+  document.getElementById(id).classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  document.querySelectorAll('.dropdown.open').forEach(d => {
+    if (!d.contains(e.target)) d.classList.remove('open');
+  });
+});
+</script>
 </body>
 </html>
