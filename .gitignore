@@ -1,11 +1,1 @@
-# Sistema operativo
-.DS_Store
-Thumbs.db
-
-# Editor
-.vscode/
-*.swp
-
-# Variables de entorno / configuración local
-.env
-config.local.js
+node_modules/  
