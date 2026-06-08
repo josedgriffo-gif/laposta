@@ -214,7 +214,7 @@
 <div id="app" style="display:none">
   <div id="header">
     <div>
-      <h1>Socios <span style="font-size:0.7rem;opacity:0.6">v4.3</span></h1>
+      <h1>Socios <span style="font-size:0.7rem;opacity:0.6">v4.4</span></h1>
       <div id="fecha-label"></div>
     </div>
     <button id="btn-volver" onclick="window.location.href='index.html'">← Caja</button>
@@ -561,6 +561,12 @@ function renderInforme(inf) {
   const neto = inf.resultadoNeto;
   const netoColor = neto >= 0 ? '#2e7d32' : '#c62828';
 
+  // Título del período con rango de fechas
+  const fmtFecha = s => { const [y,m,d] = s.split('-'); return `${d}/${m}/${y}`; };
+  const tituloPeriodo = inf.desde === inf.hasta
+    ? fmtFecha(inf.desde)
+    : `${fmtFecha(inf.desde)} – ${fmtFecha(inf.hasta)}`;
+
   const tarjeta = (titulo, valor, color) => `
     <div style="background:#f8f8f8;border-radius:10px;padding:14px;text-align:center">
       <div style="font-size:1.3rem;font-weight:800;color:${color}">${valor}</div>
@@ -569,7 +575,7 @@ function renderInforme(inf) {
 
   let html = `
     <div class="card">
-      <h2>Resultado del período</h2>
+      <h2>Período: ${tituloPeriodo}</h2>
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
         ${tarjeta('Ventas', formatPesos(inf.totalVentas), '#1b5e20')}
         ${inf.totalRedondeo > 0 ? tarjeta('Redondeo (descuentos)', '−' + formatPesos(inf.totalRedondeo), '#e65100') : ''}
@@ -588,14 +594,81 @@ function renderInforme(inf) {
       </div>
     </div>`;
 
+  // ── Medios de pago: totales del período ──
   const medios = [
     ['Efectivo', inf.medios.efectivo], ['Mercado Pago', inf.medios.mercadoPago],
     ['Transferencia', inf.medios.transferencia], ['Cuenta DNI', inf.medios.cuentaDni],
     ['Tarjeta', inf.medios.tarjeta], ['Otro', inf.medios.otro]
   ].filter(m => m[1] > 0);
   if (medios.length) {
-    html += `<div class="card"><h2>Por medio de pago</h2>${medios.map(m =>
+    html += `<div class="card"><h2>Por medio de pago — total del período</h2>${medios.map(m =>
       `<div class="resumen-fila"><span class="label">${m[0]}</span><span class="valor">${formatPesos(m[1])}</span></div>`).join('')}</div>`;
+  }
+
+  // ── Medios de pago: día a día (o mes a mes si el rango es largo) ──
+  const porDia = inf.porDia || [];
+  if (porDia.length > 1) {
+    // Si el rango supera 31 días, agrupamos por mes
+    const diasRango = Math.round((new Date(inf.hasta) - new Date(inf.desde)) / 86400000);
+    let filas;
+    if (diasRango > 31) {
+      // Agrupar por mes
+      const mesMap = {};
+      porDia.forEach(d => {
+        const clave = d.fecha.slice(0, 7); // YYYY-MM
+        if (!mesMap[clave]) mesMap[clave] = { label: '', total: 0, efectivo: 0, mercadoPago: 0, transferencia: 0, cuentaDni: 0, tarjeta: 0, otro: 0, tickets: 0 };
+        const m = mesMap[clave];
+        const [y, mo] = clave.split('-');
+        const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        m.label = `${meses[Number(mo)-1]} ${y}`;
+        m.total        += d.total; m.efectivo      += d.efectivo;
+        m.mercadoPago  += d.mercadoPago; m.transferencia += d.transferencia;
+        m.cuentaDni    += d.cuentaDni; m.tarjeta       += d.tarjeta;
+        m.otro         += d.otro; m.tickets       += d.tickets;
+      });
+      filas = Object.entries(mesMap).sort((a,b) => a[0].localeCompare(b[0])).map(([,v]) => ({...v, fecha: v.label}));
+    } else {
+      filas = porDia.map(d => ({...d, fecha: fmtFecha(d.fecha)}));
+    }
+
+    // Solo mostrar columnas que tienen algún valor
+    const colDef = [
+      { key: 'efectivo',      label: 'Efectivo' },
+      { key: 'mercadoPago',   label: 'Mercado Pago' },
+      { key: 'transferencia', label: 'Transf.' },
+      { key: 'cuentaDni',     label: 'Cuenta DNI' },
+      { key: 'tarjeta',       label: 'Tarjeta' },
+      { key: 'otro',          label: 'Otro' },
+    ].filter(c => filas.some(f => f[c.key] > 0));
+
+    const totFila = { fecha: '<strong>TOTAL</strong>', tickets: filas.reduce((s,f)=>s+f.tickets,0), total: filas.reduce((s,f)=>s+f.total,0) };
+    colDef.forEach(c => { totFila[c.key] = filas.reduce((s,f) => s + f[c.key], 0); });
+
+    const titTabla = diasRango > 31 ? 'Medios de pago — mes a mes' : 'Medios de pago — día a día';
+
+    html += `<div class="card"><h2>${titTabla}</h2>
+      <div class="tabla-scroll"><table>
+        <thead><tr>
+          <th style="text-align:left">${diasRango > 31 ? 'Mes' : 'Fecha'}</th>
+          ${colDef.map(c => `<th>${c.label}</th>`).join('')}
+          <th>Total</th>
+          <th>Tickets</th>
+        </tr></thead>
+        <tbody>
+        ${filas.map(f => `<tr>
+          <td style="white-space:nowrap">${f.fecha}</td>
+          ${colDef.map(c => `<td style="${f[c.key]>0?'font-weight:600':''}">${f[c.key]>0?formatPesos(f[c.key]):'-'}</td>`).join('')}
+          <td style="font-weight:700;color:#1b5e20">${formatPesos(f.total)}</td>
+          <td style="color:#888">${f.tickets}</td>
+        </tr>`).join('')}
+        <tr style="background:#f0f8f0;font-weight:700;border-top:2px solid #c8e6c9">
+          <td>${totFila.fecha}</td>
+          ${colDef.map(c => `<td style="color:#1b5e20">${formatPesos(totFila[c.key])}</td>`).join('')}
+          <td style="color:#1b5e20">${formatPesos(totFila.total)}</td>
+          <td style="color:#888">${totFila.tickets}</td>
+        </tr>
+        </tbody>
+      </table></div></div>`;
   }
 
   if (inf.porCategoria.length) {

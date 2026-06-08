@@ -1,6 +1,6 @@
 /**
  * LA POSTA — Backend Google Apps Script
- * backend.gs v4.3
+ * backend.gs v4.4
  *
  * API REST para la app web de punto de venta.
  * Pegá este archivo completo en el editor de Apps Script
@@ -368,12 +368,28 @@ function getInforme(desde, hasta) {
   // ── Resultado neto = margen bruto - gastos ──
   const resultadoNeto = margenBruto - totalGastos;
 
+  // ── Por día: agrupado por fecha ──
+  const diaMap = {};
+  ventas.forEach(v => {
+    const fecha = formatearFecha(v['Fecha']);
+    if (!diaMap[fecha]) diaMap[fecha] = { fecha, total: 0, efectivo: 0, mercadoPago: 0, transferencia: 0, cuentaDni: 0, tarjeta: 0, otro: 0, tickets: 0 };
+    diaMap[fecha].total        += Number(v['Total Venta'])   || 0;
+    diaMap[fecha].efectivo     += Number(v['Efectivo'])      || 0;
+    diaMap[fecha].mercadoPago  += Number(v['Mercado Pago'])  || 0;
+    diaMap[fecha].transferencia+= Number(v['Transferencia']) || 0;
+    diaMap[fecha].cuentaDni    += Number(v['Cuenta DNI'])    || 0;
+    diaMap[fecha].tarjeta      += Number(v['Tarjeta'])       || 0;
+    diaMap[fecha].otro         += Number(v['Otro'])          || 0;
+    diaMap[fecha].tickets++;
+  });
+  const porDia = Object.values(diaMap).sort((a, b) => a.fecha.localeCompare(b.fecha));
+
   return {
     desde, hasta,
     totalVentas, costoVentas, margenBruto, totalRedondeo,
     margenPct: totalVentas > 0 ? (margenBruto / totalVentas * 100) : 0,
     cantTickets, ticketProm,
-    medios,
+    medios, porDia,
     topProductos, porCategoria,
     totalGastos, gastosPorCategoria,
     resultadoNeto,
