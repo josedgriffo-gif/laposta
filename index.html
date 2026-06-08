@@ -536,7 +536,7 @@
 
   <!-- Header -->
   <div id="header">
-    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v4.6</span></h1>
+    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v4.9</span></h1>
     <div id="header-right">
       <span id="offline-badge">SIN CONEXIÓN</span>
       <button id="btn-dueno">HOY</button>
@@ -938,9 +938,15 @@ function precioConOferta(prod, cantidad) {
   const factor = esProductoPorPeso(prod) ? factorPrecioKg(prod) : 1;
   const precioBase = (Number(prod['Precio']) || 0) * factor;
   if (!tieneOfertaVigente(prod)) return precioBase;
-  const minOferta = Number(prod['Cantidad_Min_Oferta']) || 0;
-  if (cantidad >= minOferta && minOferta > 0) {
-    return (Number(prod['Precio_Oferta']) || Number(prod['Precio']) || 0) * factor;
+  const min1 = Number(prod['Cantidad_Min_Oferta']) || 0;
+  const min2 = Number(prod['Cantidad_Min_Oferta_2']) || 0;
+  const precio2 = Number(prod['Precio_Oferta_2']) || 0;
+  // 2do tramo tiene prioridad si está definido y se alcanza
+  if (min2 > 0 && precio2 > 0 && cantidad >= min2) {
+    return precio2 * factor;
+  }
+  if (min1 > 0 && cantidad >= min1) {
+    return (Number(prod['Precio_Oferta']) || precioBase) * factor;
   }
   return precioBase;
 }
