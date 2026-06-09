@@ -1223,10 +1223,10 @@ function calcularVuelto() {
     vuelto.classList.add('visible');
     btn.disabled = false;
   } else {
-    vuelto.textContent = `Falta: ${formatPesos(total - recibido)}`;
+    vuelto.textContent = `Falta: ${formatPesos(total - recibido)} — ¿confirmás así?`;
     vuelto.style.color = '#c62828';
     vuelto.classList.add('visible');
-    btn.disabled = true;
+    btn.disabled = false;
   }
 }
 
@@ -1261,6 +1261,11 @@ document.getElementById('btn-cancelar-modal').onclick = () => {
 
 // ── Confirmar venta ────────────────────────────────────────────────────────
 document.getElementById('btn-confirmar-venta').onclick = () => {
+  const total = totalAjustado();
+  const recibido = parseFloat(document.getElementById('efectivo-recibido')?.value) || 0;
+  if (medioSeleccionado === 'Efectivo' && recibido > 0 && recibido < total) {
+    if (!confirm(`Falta $${formatPesos(total - recibido)}. ¿Confirmás la venta así?`)) return;
+  }
   const datos = construirDatosVenta();
   const btn = document.getElementById('btn-confirmar-venta');
   btn.disabled = true;
