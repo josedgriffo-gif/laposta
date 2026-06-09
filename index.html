@@ -547,7 +547,7 @@
 
   <!-- Header -->
   <div id="header">
-    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v4.12</span></h1>
+    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v4.13</span></h1>
     <div id="header-right">
       <span id="offline-badge">SIN CONEXIÓN</span>
       <button id="btn-dueno">HOY</button>
@@ -1208,11 +1208,14 @@ function renderCamposPago(medio) {
   vuelto.classList.remove('visible');
 
   if (medio === 'Efectivo') {
-    const div = document.createElement('div');
-    div.className = 'campo-pago';
-    div.innerHTML = `<label>Efectivo recibido</label><input type="number" id="efectivo-recibido" placeholder="0" min="0">`;
-    cont.appendChild(div);
+    cont.innerHTML = `
+      <div style="background:#fffde7;border:3px solid #f9a825;border-radius:12px;padding:16px;margin-top:4px">
+        <div style="font-size:0.85rem;font-weight:700;color:#f57f17;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px">¿Cuánto te dan?</div>
+        <input type="number" id="efectivo-recibido" placeholder="0" min="0"
+          style="width:100%;font-size:2rem;font-weight:800;color:#1b5e20;border:2px solid #f9a825;border-radius:8px;padding:10px 14px;text-align:right;background:white">
+      </div>`;
     document.getElementById('efectivo-recibido').oninput = calcularVuelto;
+    document.getElementById('efectivo-recibido').focus();
     document.getElementById('btn-confirmar-venta').disabled = true;
   } else if (medio === 'Mixto') {
     const medios = ['Efectivo', 'Mercado Pago', 'Transferencia', 'Cuenta DNI', 'Tarjeta'];
