@@ -1,6 +1,6 @@
 /**
  * LA POSTA — Backend Google Apps Script
- * backend.gs v4.4
+ * backend.gs v4.5
  *
  * API REST para la app web de punto de venta.
  * Pegá este archivo completo en el editor de Apps Script
@@ -846,7 +846,9 @@ function guardarProducto(data) {
       data.activo !== false ? 'SI' : 'NO',
       data.precioOferta || '',
       data.cantMinOferta || '',
-      data.fechaFinOferta || ''
+      data.fechaFinOferta || '',
+      data.precioOferta2 || '',
+      data.cantMinOferta2 || ''
     ]);
     // Agregar al stock automáticamente (en 0) si no existe
     const stockSheet = ss.getSheetByName('Stock_Actual');
@@ -936,7 +938,9 @@ function updateProducto(data) {
         'Activo': data.activo !== false ? 'SI' : 'NO',
         'Precio_Oferta': data.precioOferta || '',
         'Cantidad_Min_Oferta': data.cantMinOferta || '',
-        'Fecha_Fin_Oferta': data.fechaFinOferta || ''
+        'Fecha_Fin_Oferta': data.fechaFinOferta || '',
+        'Precio_Oferta_2': data.precioOferta2 || '',
+        'Cantidad_Min_Oferta_2': data.cantMinOferta2 || ''
       };
       headers.forEach((h, col) => {
         if (map[h] !== undefined) {
