@@ -547,7 +547,7 @@
 
   <!-- Header -->
   <div id="header">
-    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v4.11</span></h1>
+    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v4.12</span></h1>
     <div id="header-right">
       <span id="offline-badge">SIN CONEXIÓN</span>
       <button id="btn-dueno">HOY</button>
@@ -654,12 +654,11 @@
 <div class="modal-overlay" id="modal-cobro">
   <div class="modal">
     <h2>Cobrar venta</h2>
-    <div id="modal-total-label" class="modal-total" style="font-size:0.9rem;color:#888;font-weight:500">Total calculado: $ 0</div>
-    <div style="display:flex;align-items:center;gap:10px;margin:6px 0 12px">
-      <label style="font-size:0.9rem;font-weight:600;color:#333;white-space:nowrap">Total a cobrar:</label>
-      <input type="number" id="total-ajustado" style="font-size:1.2rem;font-weight:700;color:#1b5e20;border:2px solid #c8e6c9;border-radius:8px;padding:6px 10px;width:100%;text-align:right" oninput="actualizarRedondeo()">
+    <div style="text-align:center;margin:4px 0 8px">
+      <span style="font-size:0.85rem;color:#888">Total a cobrar</span><br>
+      <span id="modal-total-label" style="font-size:2rem;font-weight:800;color:#1b5e20">$ 0</span>
+      <input type="hidden" id="total-ajustado">
     </div>
-    <div id="redondeo-display" style="display:none;font-size:0.85rem;font-weight:600;color:#e65100;margin-bottom:8px;text-align:right"></div>
 
     <div>
       <div style="font-size:0.85rem;font-weight:600;color:#555;margin-bottom:8px;">Medio de pago</div>
@@ -673,6 +672,7 @@
       </div>
     </div>
 
+    <div id="aviso-medio" style="font-size:0.85rem;color:#e65100;text-align:center;display:block">Seleccioná un medio de pago para continuar</div>
     <div id="campos-pago"></div>
     <div id="vuelto-display"></div>
 
@@ -1161,9 +1161,8 @@ document.getElementById('btn-cancelar').onclick = () => {
 // ── Modal cobro ────────────────────────────────────────────────────────────
 document.getElementById('btn-cobrar').onclick = () => {
   const total = calcularTotal();
-  document.getElementById('modal-total-label').textContent = 'Total calculado: ' + formatPesos(total);
+  document.getElementById('modal-total-label').textContent = formatPesos(total);
   document.getElementById('total-ajustado').value = total;
-  document.getElementById('redondeo-display').style.display = 'none';
   medioSeleccionado = null;
   document.querySelectorAll('.btn-medio').forEach(b => b.classList.remove('seleccionado'));
   document.getElementById('campos-pago').innerHTML = '';
@@ -1197,6 +1196,7 @@ document.querySelectorAll('.btn-medio').forEach(btn => {
     medioSeleccionado = btn.dataset.medio;
     document.querySelectorAll('.btn-medio').forEach(b => b.classList.remove('seleccionado'));
     btn.classList.add('seleccionado');
+    document.getElementById('aviso-medio').style.display = 'none';
     renderCamposPago(medioSeleccionado);
   };
 });
@@ -1216,15 +1216,16 @@ function renderCamposPago(medio) {
     document.getElementById('btn-confirmar-venta').disabled = true;
   } else if (medio === 'Mixto') {
     const medios = ['Efectivo', 'Mercado Pago', 'Transferencia', 'Cuenta DNI', 'Tarjeta'];
+    cont.style.display = 'grid';
+    cont.style.gridTemplateColumns = '1fr 1fr';
+    cont.style.gap = '8px';
     medios.forEach(m => {
       const id = 'mixto-' + m.replace(/ /g, '_');
       const div = document.createElement('div');
-      div.className = 'campo-pago';
-      div.innerHTML = `<label>${m}</label><input type="number" id="${id}" placeholder="0" min="0">`;
+      div.innerHTML = `<label style="font-size:0.8rem;color:#555;display:block;margin-bottom:2px">${m}</label><input type="number" id="${id}" placeholder="0" min="0" style="width:100%;padding:8px;border:2px solid #c8e6c9;border-radius:8px;font-size:1rem;text-align:right">`;
       cont.appendChild(div);
       div.querySelector('input').oninput = validarMixto;
     });
-    // En Mixto el botón arranca bloqueado hasta cubrir el total
     document.getElementById('btn-confirmar-venta').disabled = true;
   } else {
     document.getElementById('btn-confirmar-venta').disabled = false;
