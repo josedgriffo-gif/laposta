@@ -672,6 +672,18 @@
   </div>
 </div>
 
+<!-- Modal: confirmar venta con falta -->
+<div class="modal-overlay" id="modal-confirmar-falta">
+  <div class="modal">
+    <h2 style="color:#c62828">Falta dinero</h2>
+    <p id="modal-falta-texto" style="font-size:1.1rem;text-align:center;margin:16px 0"></p>
+    <div class="modal-btns">
+      <button id="btn-falta-cancelar" style="background:#eee;color:#333">Volver</button>
+      <button id="btn-falta-confirmar" style="background:#c62828;color:white">Confirmar igual</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: PIN -->
 <div class="modal-overlay" id="modal-pin">
   <div class="modal">
@@ -1260,15 +1272,11 @@ document.getElementById('btn-cancelar-modal').onclick = () => {
 };
 
 // ── Confirmar venta ────────────────────────────────────────────────────────
-document.getElementById('btn-confirmar-venta').onclick = () => {
-  const total = totalAjustado();
-  const recibido = parseFloat(document.getElementById('efectivo-recibido')?.value) || 0;
-  if (medioSeleccionado === 'Efectivo' && recibido > 0 && recibido < total) {
-    if (!confirm(`Falta $${formatPesos(total - recibido)}. ¿Confirmás la venta así?`)) return;
-  }
+function ejecutarVenta() {
   const datos = construirDatosVenta();
   const btn = document.getElementById('btn-confirmar-venta');
   btn.disabled = true;
+  btn.textContent = 'Procesando...';
 
   // Mostrar ticket inmediatamente sin esperar al servidor
   datos.ticketProvisional = true;
@@ -1291,6 +1299,27 @@ document.getElementById('btn-confirmar-venta').onclick = () => {
     ventasPendientes.push(datos);
     localStorage.setItem('ventas_pendientes', JSON.stringify(ventasPendientes));
   }
+}
+
+document.getElementById('btn-confirmar-venta').onclick = () => {
+  const total = totalAjustado();
+  const recibido = parseFloat(document.getElementById('efectivo-recibido')?.value) || 0;
+  if (medioSeleccionado === 'Efectivo' && recibido > 0 && recibido < total) {
+    document.getElementById('modal-falta-texto').textContent =
+      `Recibiste ${formatPesos(recibido)} y el total es ${formatPesos(total)}. Falta ${formatPesos(total - recibido)}.`;
+    document.getElementById('modal-confirmar-falta').classList.add('visible');
+    return;
+  }
+  ejecutarVenta();
+};
+
+document.getElementById('btn-falta-cancelar').onclick = () => {
+  document.getElementById('modal-confirmar-falta').classList.remove('visible');
+};
+
+document.getElementById('btn-falta-confirmar').onclick = () => {
+  document.getElementById('modal-confirmar-falta').classList.remove('visible');
+  ejecutarVenta();
 };
 
 function construirDatosVenta() {
