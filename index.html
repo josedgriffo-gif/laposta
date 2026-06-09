@@ -1213,7 +1213,7 @@ function renderCamposPago(medio) {
     div.innerHTML = `<label>Efectivo recibido</label><input type="number" id="efectivo-recibido" placeholder="0" min="0">`;
     cont.appendChild(div);
     document.getElementById('efectivo-recibido').oninput = calcularVuelto;
-    document.getElementById('btn-confirmar-venta').disabled = false;
+    document.getElementById('btn-confirmar-venta').disabled = true;
   } else if (medio === 'Mixto') {
     const medios = ['Efectivo', 'Mercado Pago', 'Transferencia', 'Cuenta DNI', 'Tarjeta'];
     medios.forEach(m => {
@@ -1241,7 +1241,7 @@ function calcularVuelto() {
   const btnFalta = document.getElementById('btn-confirmar-con-falta');
   if (campo.value === '' || recibido === 0) {
     vuelto.classList.remove('visible');
-    btn.disabled = false;
+    btn.disabled = true;
     btnFalta.style.display = 'none';
   } else if (recibido >= total) {
     vuelto.textContent = `Vuelto: ${formatPesos(recibido - total)}`;
