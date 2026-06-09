@@ -363,6 +363,17 @@
     font-weight: 700;
   }
   #btn-confirmar-venta:active { background: #1b5e20; }
+  #btn-confirmar-con-falta {
+    flex: 1;
+    background: #c62828;
+    color: white;
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    display: none;
+  }
+  #btn-confirmar-con-falta:active { background: #7f0000; }
   #btn-cancelar-modal {
     background: #f5f5f5;
     color: #555;
@@ -536,7 +547,7 @@
 
   <!-- Header -->
   <div id="header">
-    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v4.9</span></h1>
+    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v4.10</span></h1>
     <div id="header-right">
       <span id="offline-badge">SIN CONEXIÓN</span>
       <button id="btn-dueno">HOY</button>
@@ -668,6 +679,7 @@
     <div class="modal-btns">
       <button id="btn-cancelar-modal">Volver</button>
       <button id="btn-confirmar-venta" disabled>Confirmar</button>
+      <button id="btn-confirmar-con-falta">⚠ Confirmar con falta</button>
     </div>
   </div>
 </div>
@@ -1226,19 +1238,23 @@ function calcularVuelto() {
   const vuelto = document.getElementById('vuelto-display');
   const btn = document.getElementById('btn-confirmar-venta');
 
+  const btnFalta = document.getElementById('btn-confirmar-con-falta');
   if (campo.value === '' || recibido === 0) {
     vuelto.classList.remove('visible');
     btn.disabled = false;
+    btnFalta.style.display = 'none';
   } else if (recibido >= total) {
     vuelto.textContent = `Vuelto: ${formatPesos(recibido - total)}`;
     vuelto.style.color = '#1b5e20';
     vuelto.classList.add('visible');
     btn.disabled = false;
+    btnFalta.style.display = 'none';
   } else {
-    vuelto.textContent = `Falta: ${formatPesos(total - recibido)} — ¿confirmás así?`;
+    vuelto.textContent = `Falta: ${formatPesos(total - recibido)}`;
     vuelto.style.color = '#c62828';
     vuelto.classList.add('visible');
-    btn.disabled = false;
+    btn.disabled = true;
+    btnFalta.style.display = 'flex';
   }
 }
 
@@ -1302,14 +1318,10 @@ function ejecutarVenta() {
 }
 
 document.getElementById('btn-confirmar-venta').onclick = () => {
-  const total = totalAjustado();
-  const recibido = parseFloat(document.getElementById('efectivo-recibido')?.value) || 0;
-  if (medioSeleccionado === 'Efectivo' && recibido > 0 && recibido < total) {
-    document.getElementById('modal-falta-texto').textContent =
-      `Recibiste ${formatPesos(recibido)} y el total es ${formatPesos(total)}. Falta ${formatPesos(total - recibido)}.`;
-    document.getElementById('modal-confirmar-falta').classList.add('visible');
-    return;
-  }
+  ejecutarVenta();
+};
+
+document.getElementById('btn-confirmar-con-falta').onclick = () => {
   ejecutarVenta();
 };
 
