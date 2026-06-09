@@ -368,7 +368,7 @@
 
 <div id="app" style="display:none">
   <div id="header">
-    <h1>⚙ Panel Admin <span id="version-badge">v4.13</span></h1>
+    <h1>⚙ Panel Admin <span id="version-badge">v4.14</span></h1>
     <div style="display:flex;gap:8px;align-items:center">
       <button onclick="window.location.href='dueno.html'" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:8px 16px;font-size:0.9rem;font-weight:600;cursor:pointer">HOY</button>
       <div class="dropdown" id="dropdown-informes" style="position:relative">
@@ -418,12 +418,8 @@
             <datalist id="unidades-list"></datalist>
           </div>
           <div class="field">
-            <label id="lbl-prod-precio">Precio de venta *</label>
-            <input type="number" id="prod-precio" placeholder="0" min="0">
-          </div>
-          <div class="field">
             <label id="lbl-prod-costo">Costo</label>
-            <input type="number" id="prod-costo" placeholder="0" min="0">
+            <input type="number" id="prod-costo" placeholder="0" min="0" oninput="calcMargenesAlta()">
           </div>
           <div class="field">
             <label>Activo</label>
@@ -435,31 +431,39 @@
         </div>
 
         <div style="margin-top:14px;padding-top:14px;border-top:1px solid #eee">
-          <div style="font-size:0.85rem;font-weight:700;color:#e65100;margin-bottom:10px">Oferta por cantidad (opcional)</div>
-          <div class="form-grid cols3">
-            <div class="field">
-              <label id="lbl-prod-precio-oferta">Precio oferta — 1er tramo</label>
-              <input type="number" id="prod-precio-oferta" placeholder="0" min="0">
-            </div>
-            <div class="field">
-              <label id="lbl-prod-cant-min">Cantidad mínima — 1er tramo</label>
-              <input type="number" id="prod-cant-min" placeholder="0" min="0">
-            </div>
-            <div class="field">
-              <label>Fecha fin (opcional)</label>
-              <input type="date" id="prod-fecha-fin">
-            </div>
-          </div>
-          <div class="form-grid cols3" style="margin-top:8px">
-            <div class="field">
-              <label id="lbl-prod-precio-oferta-2">Precio oferta — 2do tramo</label>
-              <input type="number" id="prod-precio-oferta-2" placeholder="0" min="0">
-            </div>
-            <div class="field">
-              <label id="lbl-prod-cant-min-2">Cantidad mínima — 2do tramo</label>
-              <input type="number" id="prod-cant-min-2" placeholder="0" min="0">
-            </div>
-            <div class="field"></div>
+          <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+            <thead>
+              <tr style="color:#555;font-weight:700;border-bottom:2px solid #e0e0e0">
+                <td style="padding:6px 8px"></td>
+                <td style="padding:6px 8px" id="lbl-prod-precio">Precio de venta *</td>
+                <td style="padding:6px 8px;text-align:center">Margen</td>
+                <td style="padding:6px 8px">Cantidad mínima</td>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="border-bottom:1px solid #f0f0f0">
+                <td style="padding:8px;color:#555;font-weight:600;white-space:nowrap">Precio regular</td>
+                <td style="padding:4px 8px"><input type="number" id="prod-precio" placeholder="0" min="0" oninput="calcMargenesAlta()" style="width:100%"></td>
+                <td style="padding:4px 8px;text-align:center"><span id="margen-prod-regular" style="font-weight:700;font-size:0.95rem">—</span></td>
+                <td></td>
+              </tr>
+              <tr style="border-bottom:1px solid #f0f0f0">
+                <td style="padding:8px;color:#e65100;font-weight:600;white-space:nowrap" id="lbl-prod-precio-oferta">Oferta 1er tramo</td>
+                <td style="padding:4px 8px"><input type="number" id="prod-precio-oferta" placeholder="0" min="0" oninput="calcMargenesAlta()" style="width:100%"></td>
+                <td style="padding:4px 8px;text-align:center"><span id="margen-prod-oferta1" style="font-weight:700;font-size:0.95rem">—</span></td>
+                <td style="padding:4px 8px"><input type="number" id="prod-cant-min" placeholder="0" min="0" style="width:100%" id="lbl-prod-cant-min"></td>
+              </tr>
+              <tr>
+                <td style="padding:8px;color:#e65100;font-weight:600;white-space:nowrap" id="lbl-prod-precio-oferta-2">Oferta 2do tramo</td>
+                <td style="padding:4px 8px"><input type="number" id="prod-precio-oferta-2" placeholder="0" min="0" oninput="calcMargenesAlta()" style="width:100%"></td>
+                <td style="padding:4px 8px;text-align:center"><span id="margen-prod-oferta2" style="font-weight:700;font-size:0.95rem">—</span></td>
+                <td style="padding:4px 8px"><input type="number" id="prod-cant-min-2" placeholder="0" min="0" style="width:100%" id="lbl-prod-cant-min-2"></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="field" style="margin-top:10px;max-width:220px">
+            <label>Fecha fin oferta (opcional)</label>
+            <input type="date" id="prod-fecha-fin">
           </div>
         </div>
 
@@ -1003,18 +1007,44 @@
         <label>Unidad</label>
         <input type="text" id="edit-unidad" list="unidades-list" placeholder="un, kg, lt, caja..." autocomplete="off">
       </div>
-      <div class="field"><label id="lbl-edit-precio">Precio</label><input type="number" id="edit-precio" min="0"></div>
-      <div class="field"><label id="lbl-edit-costo">Costo</label><input type="number" id="edit-costo" min="0"></div>
+      <div class="field"><label id="lbl-edit-costo">Costo</label><input type="number" id="edit-costo" min="0" oninput="calcMargenesEdit()"></div>
       <div class="field">
         <label>Activo</label>
         <select id="edit-activo"><option value="SI">Sí</option><option value="NO">No</option></select>
       </div>
-      <div class="field"><label id="lbl-edit-precio-oferta">Precio oferta — 1er tramo</label><input type="number" id="edit-precio-oferta" min="0"></div>
-      <div class="field"><label id="lbl-edit-cant-min">Cantidad mínima — 1er tramo</label><input type="number" id="edit-cant-min" min="0"></div>
-      <div class="field"><label>Fecha fin oferta</label><input type="date" id="edit-fecha-fin"></div>
-      <div class="field"><label id="lbl-edit-precio-oferta-2">Precio oferta — 2do tramo</label><input type="number" id="edit-precio-oferta-2" min="0"></div>
-      <div class="field"><label id="lbl-edit-cant-min-2">Cantidad mínima — 2do tramo</label><input type="number" id="edit-cant-min-2" min="0"></div>
-      <div class="field"></div>
+      <table style="width:100%;border-collapse:collapse;font-size:0.9rem;margin-top:8px">
+        <thead>
+          <tr style="color:#555;font-weight:700;border-bottom:2px solid #e0e0e0">
+            <td style="padding:6px 8px"></td>
+            <td style="padding:6px 8px" id="lbl-edit-precio">Precio</td>
+            <td style="padding:6px 8px;text-align:center">Margen</td>
+            <td style="padding:6px 8px">Cant. mínima</td>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #f0f0f0">
+            <td style="padding:8px;color:#555;font-weight:600;white-space:nowrap">Precio regular</td>
+            <td style="padding:4px 8px"><input type="number" id="edit-precio" min="0" oninput="calcMargenesEdit()" style="width:100%"></td>
+            <td style="padding:4px 8px;text-align:center"><span id="margen-edit-regular" style="font-weight:700;font-size:0.95rem">—</span></td>
+            <td></td>
+          </tr>
+          <tr style="border-bottom:1px solid #f0f0f0">
+            <td style="padding:8px;color:#e65100;font-weight:600;white-space:nowrap" id="lbl-edit-precio-oferta">Oferta 1er tramo</td>
+            <td style="padding:4px 8px"><input type="number" id="edit-precio-oferta" min="0" oninput="calcMargenesEdit()" style="width:100%"></td>
+            <td style="padding:4px 8px;text-align:center"><span id="margen-edit-oferta1" style="font-weight:700;font-size:0.95rem">—</span></td>
+            <td style="padding:4px 8px"><input type="number" id="edit-cant-min" min="0" style="width:100%"></td>
+          </tr>
+          <tr>
+            <td style="padding:8px;color:#e65100;font-weight:600;white-space:nowrap" id="lbl-edit-precio-oferta-2">Oferta 2do tramo</td>
+            <td style="padding:4px 8px"><input type="number" id="edit-precio-oferta-2" min="0" oninput="calcMargenesEdit()" style="width:100%"></td>
+            <td style="padding:4px 8px;text-align:center"><span id="margen-edit-oferta2" style="font-weight:700;font-size:0.95rem">—</span></td>
+            <td style="padding:4px 8px"><input type="number" id="edit-cant-min-2" min="0" style="width:100%"></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="field" style="margin-top:10px;max-width:220px">
+        <label>Fecha fin oferta</label><input type="date" id="edit-fecha-fin">
+      </div>
     </div>
     <div id="msg-edit-ok" class="msg-ok">Guardado</div>
     <div id="msg-edit-error" class="msg-error"></div>
@@ -1881,6 +1911,34 @@ function renderTablaAjustes() {
 }
 
 // ── Guardar producto nuevo ─────────────────────────────────────────────────
+function calcMargen(precio, costo) {
+  if (!costo || costo <= 0 || !precio || precio <= 0) return null;
+  return (precio - costo) / costo * 100;
+}
+
+function renderMargen(spanId, precio, costo) {
+  const el = document.getElementById(spanId);
+  if (!el) return;
+  const m = calcMargen(precio, costo);
+  if (m === null) { el.textContent = '—'; el.style.color = '#aaa'; return; }
+  el.textContent = m.toFixed(1) + '%';
+  el.style.color = m < 30 ? '#c62828' : '#2e7d32';
+}
+
+function calcMargenesAlta() {
+  const costo = parseFloat(document.getElementById('prod-costo').value) || 0;
+  renderMargen('margen-prod-regular', parseFloat(document.getElementById('prod-precio').value) || 0, costo);
+  renderMargen('margen-prod-oferta1', parseFloat(document.getElementById('prod-precio-oferta').value) || 0, costo);
+  renderMargen('margen-prod-oferta2', parseFloat(document.getElementById('prod-precio-oferta-2').value) || 0, costo);
+}
+
+function calcMargenesEdit() {
+  const costo = parseFloat(document.getElementById('edit-costo').value) || 0;
+  renderMargen('margen-edit-regular', parseFloat(document.getElementById('edit-precio').value) || 0, costo);
+  renderMargen('margen-edit-oferta1', parseFloat(document.getElementById('edit-precio-oferta').value) || 0, costo);
+  renderMargen('margen-edit-oferta2', parseFloat(document.getElementById('edit-precio-oferta-2').value) || 0, costo);
+}
+
 async function guardarProducto() {
   const nombre = document.getElementById('prod-nombre').value.trim();
   const categoria = document.getElementById('prod-categoria').value.trim();
@@ -1997,6 +2055,7 @@ function abrirEditar(idx) {
   document.getElementById('msg-edit-ok').classList.remove('visible');
   document.getElementById('msg-edit-error').classList.remove('visible');
   document.getElementById('modal-editar-prod').classList.add('visible');
+  calcMargenesEdit();
 }
 
 function cerrarModalEditar() {
