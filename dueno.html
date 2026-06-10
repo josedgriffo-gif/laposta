@@ -214,7 +214,7 @@
 <div id="app" style="display:none">
   <div id="header">
     <div>
-      <h1>Socios <span style="font-size:0.7rem;opacity:0.6">v4.23</span></h1>
+      <h1>Socios <span style="font-size:0.7rem;opacity:0.6">v4.24</span></h1>
       <div id="fecha-label"></div>
     </div>
     <button id="btn-volver" onclick="window.location.href='index.html'">← Caja</button>
@@ -224,6 +224,7 @@
     <button class="tab activo" data-tab="hoy">HOY</button>
     <button class="tab" data-tab="evolucion">PERÍODO</button>
     <button class="tab" data-tab="accionistas">Accionistas</button>
+    <button class="tab" data-tab="volumen">Volumen</button>
   </div>
 
   <div id="contenido">
@@ -292,6 +293,32 @@
         <button class="btn-primary" onclick="generarInforme()">Generar informe</button>
       </div>
       <div id="informe-resultado"></div>
+    </div>
+
+    <!-- ── TAB: VOLUMEN ─────────────────────────────────────────────────── -->
+    <div id="tab-volumen" style="display:none">
+      <div class="card">
+        <h2>Volumen vendido por producto</h2>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+          <button class="btn-secondary btn-sm" onclick="volRangoGenerar('semana')">Últimos 7 días</button>
+          <button class="btn-secondary btn-sm" onclick="volRangoGenerar('mes')">Este mes</button>
+          <button class="btn-secondary btn-sm" onclick="volRangoGenerar('mespasado')">Mes pasado</button>
+          <button class="btn-secondary btn-sm" onclick="volRangoGenerar('3meses')">Últimos 3 meses</button>
+          <button class="btn-secondary btn-sm" onclick="volRangoGenerar('anio')">Este año</button>
+        </div>
+        <div class="form-grid">
+          <div class="field"><label>Desde</label><input type="date" id="vol-desde"></div>
+          <div class="field"><label>Hasta</label><input type="date" id="vol-hasta"></div>
+        </div>
+        <div style="margin:12px 0 4px;font-size:0.85rem;font-weight:600;color:#555">Agrupar por:</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+          <button class="btn-secondary btn-sm vol-agrup activo-modo" data-agrup="mes" onclick="setAgrupVol('mes')">Mes</button>
+          <button class="btn-secondary btn-sm vol-agrup" data-agrup="semana" onclick="setAgrupVol('semana')">Semana</button>
+          <button class="btn-secondary btn-sm vol-agrup" data-agrup="dia" onclick="setAgrupVol('dia')">Día</button>
+        </div>
+        <button class="btn-primary" onclick="generarVolumen()">Generar</button>
+      </div>
+      <div id="volumen-resultado"></div>
     </div>
 
     <!-- ── TAB: ACCIONISTAS ──────────────────────────────────────────────── -->
@@ -759,6 +786,77 @@ function accRango(tipo) {
 function accRangoGenerar(tipo) {
   accRango(tipo);
   generarAccionistas();
+}
+
+// ── VOLUMEN ────────────────────────────────────────────────────────────────
+let volAgrup = 'mes';
+
+function setAgrupVol(agrup) {
+  volAgrup = agrup;
+  document.querySelectorAll('.vol-agrup').forEach(b => b.classList.toggle('activo-modo', b.dataset.agrup === agrup));
+}
+
+function volRango(tipo) {
+  const hoy = new Date();
+  const fmt = d => d.toISOString().slice(0, 10);
+  let desde, hasta = fmt(hoy);
+  if (tipo === 'semana')   { const d = new Date(hoy); d.setDate(hoy.getDate() - 6); desde = fmt(d); }
+  else if (tipo === 'mes') { desde = fmt(new Date(hoy.getFullYear(), hoy.getMonth(), 1)); }
+  else if (tipo === 'mespasado') { desde = fmt(new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1)); hasta = fmt(new Date(hoy.getFullYear(), hoy.getMonth(), 0)); }
+  else if (tipo === '3meses') { const d = new Date(hoy); d.setMonth(hoy.getMonth() - 3); desde = fmt(d); }
+  else if (tipo === 'anio') { desde = fmt(new Date(hoy.getFullYear(), 0, 1)); }
+  document.getElementById('vol-desde').value = desde;
+  document.getElementById('vol-hasta').value = hasta;
+}
+
+function volRangoGenerar(tipo) {
+  volRango(tipo);
+  generarVolumen();
+}
+
+async function generarVolumen() {
+  const desde = document.getElementById('vol-desde').value;
+  const hasta  = document.getElementById('vol-hasta').value;
+  const cont   = document.getElementById('volumen-resultado');
+  if (!desde || !hasta) { alert('Elegí las fechas'); return; }
+  cont.innerHTML = '<div class="card" style="text-align:center;color:#999;padding:30px">Calculando...</div>';
+  try {
+    const res = await apiGet(`getVolumen&desde=${desde}&hasta=${hasta}&agrupacion=${volAgrup}`);
+    renderVolumen(res);
+  } catch(e) {
+    cont.innerHTML = `<div class="card" style="color:#c62828;padding:20px">Error: ${e.message}</div>`;
+  }
+}
+
+function fmtPeriodo(p, agrup) {
+  if (agrup === 'mes') {
+    const meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const [y, m] = p.split('-');
+    return `${meses[parseInt(m)-1]} ${y}`;
+  }
+  if (agrup === 'semana') return `sem ${p.slice(5)}`;
+  return p.slice(5); // dia: MM-DD
+}
+
+function renderVolumen(data) {
+  const cont = document.getElementById('volumen-resultado');
+  if (!data.periodos || data.periodos.length === 0 || data.productos.length === 0) {
+    cont.innerHTML = '<div class="card" style="text-align:center;color:#999;padding:30px">Sin datos en el período elegido</div>';
+    return;
+  }
+  const { periodos, productos } = data;
+  const ths = periodos.map(p => `<th>${fmtPeriodo(p, volAgrup)}</th>`).join('');
+  const rows = productos.map(p => {
+    const celdas = periodos.map(per => {
+      const v = p.cantidades[per];
+      return `<td>${v ? v.toFixed(3) : '—'}</td>`;
+    }).join('');
+    return `<tr><td><strong>${p.nombre}</strong></td><td style="text-align:center">${p.unidad}</td>${celdas}<td style="font-weight:700">${p.total.toFixed(3)}</td></tr>`;
+  }).join('');
+  cont.innerHTML = `<div class="card"><div class="tabla-scroll"><table>
+    <thead><tr><th>Producto</th><th>UM</th>${ths}<th>Total</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div></div>`;
 }
 
 async function generarAccionistas() {

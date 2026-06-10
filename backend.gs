@@ -1,6 +1,6 @@
 /**
  * LA POSTA — Backend Google Apps Script
- * backend.gs v4.23
+ * backend.gs v4.24
  *
  * API REST para la app web de punto de venta.
  * Pegá este archivo completo en el editor de Apps Script
@@ -34,6 +34,7 @@ function doGet(e) {
       case 'getInforme':      return ok(getInforme(e.parameter.desde, e.parameter.hasta));
       case 'getDatosExport':  return ok(getDatosExport(e.parameter.desde, e.parameter.hasta));
       case 'getAccionistas':  return ok(getAccionistas(e.parameter.desde, e.parameter.hasta, e.parameter.modalidad));
+      case 'getVolumen':      return ok(getVolumen(e.parameter.desde, e.parameter.hasta, e.parameter.agrupacion));
       default:                return ok({ status: 'La Posta API activa' });
     }
   } catch (err) {
@@ -1038,6 +1039,53 @@ function recalcularResumen(data) {
   // Recalcular desde cero
   actualizarResumenDia(ss, fecha);
   return getResumenHoy();
+}
+
+// ── Volumen por producto ─────────────────────────────────────────────────────
+/**
+ * Devuelve cantidades vendidas por producto agrupadas por período.
+ * agrupacion: 'dia' | 'semana' | 'mes'
+ * Retorna { periodos: ['2025-06', ...], productos: [{nombre, unidad, cantidades: {'2025-06': 3.5, ...}, total}] }
+ */
+function getVolumen(desde, hasta, agrupacion) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const enRango = (f) => { const fecha = formatearFecha(f); return fecha >= desde && fecha <= hasta; };
+
+  const clavePeriodo = (fechaStr) => {
+    if (agrupacion === 'dia') return fechaStr;
+    if (agrupacion === 'semana') {
+      const d = new Date(fechaStr + 'T00:00:00');
+      const dow = d.getDay() === 0 ? 6 : d.getDay() - 1; // lunes=0
+      const lunes = new Date(d); lunes.setDate(d.getDate() - dow);
+      return Utilities.formatDate(lunes, 'America/Argentina/Buenos_Aires', 'yyyy-MM-dd');
+    }
+    return fechaStr.substring(0, 7); // mes: yyyy-MM
+  };
+
+  const cancelados = ticketsCancelados();
+  const detalle = sheetToObjects(ss.getSheetByName('Detalle_Ventas'))
+    .filter(d => enRango(d['Fecha']) && !cancelados.has(String(d['Ticket'])));
+
+  const periodosSet = {};
+  const prodMap = {};
+
+  detalle.forEach(d => {
+    const nombre  = d['Producto'] || '(sin nombre)';
+    const unidad  = d['Unidad']   || '';
+    const cantidad = Number(d['Cantidad']) || 0;
+    const fecha   = formatearFecha(d['Fecha']);
+    const periodo = clavePeriodo(fecha);
+
+    periodosSet[periodo] = true;
+    if (!prodMap[nombre]) prodMap[nombre] = { nombre, unidad, cantidades: {}, total: 0 };
+    prodMap[nombre].cantidades[periodo] = (prodMap[nombre].cantidades[periodo] || 0) + cantidad;
+    prodMap[nombre].total += cantidad;
+  });
+
+  const periodos = Object.keys(periodosSet).sort();
+  const productos = Object.values(prodMap).sort((a, b) => b.total - a.total);
+
+  return { periodos, productos };
 }
 
 // ── Utilidades ───────────────────────────────────────────────────────────────
