@@ -705,7 +705,7 @@ function renderInforme(inf) {
       <div class="tabla-scroll"><table><thead><tr><th>#</th><th>Producto</th><th>UM</th><th>Cant.</th><th>Ingreso</th><th>Margen $</th><th>Margen %</th></tr></thead><tbody>
       ${inf.topProductos.slice(0, 20).map((p, i) => {
         const pct = p.ingreso > 0 ? (p.margen / p.ingreso * 100) : 0;
-        return `<tr><td>${i+1}</td><td><strong>${p.nombre}</strong></td><td>${p.unidad || ''}</td><td>${p.cantidad % 1 === 0 ? p.cantidad : p.cantidad.toFixed(3)}</td><td style="font-weight:700">${formatPesos(p.ingreso)}</td><td style="color:#2e7d32">${formatPesos(p.margen)}</td><td><span class="td-pct ${claseMargenPct(pct)}">${pct.toFixed(1)}%</span></td></tr>`;
+        return `<tr><td>${i+1}</td><td><strong>${p.nombre}</strong></td><td style="text-align:center">${p.unidad || ''}</td><td style="text-align:right">${p.cantidad % 1 === 0 ? p.cantidad : p.cantidad.toFixed(3)}</td><td style="font-weight:700">${formatPesos(p.ingreso)}</td><td style="color:#2e7d32">${formatPesos(p.margen)}</td><td><span class="td-pct ${claseMargenPct(pct)}">${pct.toFixed(1)}%</span></td></tr>`;
       }).join('')}
       </tbody></table></div></div>`;
   }
