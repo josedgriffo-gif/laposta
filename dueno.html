@@ -214,7 +214,7 @@
 <div id="app" style="display:none">
   <div id="header">
     <div>
-      <h1>Socios <span style="font-size:0.7rem;opacity:0.6">v4.19</span></h1>
+      <h1>Socios <span style="font-size:0.7rem;opacity:0.6">v4.20</span></h1>
       <div id="fecha-label"></div>
     </div>
     <button id="btn-volver" onclick="window.location.href='index.html'">← Caja</button>
@@ -479,10 +479,11 @@ async function cargarDatosHoy() {
     const porProducto = {};
     detalle.forEach(d => {
       const nombre = d['Producto'];
-      if (!porProducto[nombre]) porProducto[nombre] = { nombre, categoria: d['Categoría'] || '', ventas: 0, costo: 0, margen: 0 };
-      porProducto[nombre].ventas += Number(d['Subtotal'])    || 0;
-      porProducto[nombre].costo  += Number(d['Costo Total']) || 0;
-      porProducto[nombre].margen += Number(d['Margen $'])    || 0;
+      if (!porProducto[nombre]) porProducto[nombre] = { nombre, categoria: d['Categoría'] || '', unidad: d['Unidad'] || '', ventas: 0, costo: 0, margen: 0, cantidad: 0 };
+      porProducto[nombre].ventas   += Number(d['Subtotal'])    || 0;
+      porProducto[nombre].costo    += Number(d['Costo Total']) || 0;
+      porProducto[nombre].margen   += Number(d['Margen $'])    || 0;
+      porProducto[nombre].cantidad += Number(d['Cantidad'])    || 0;
     });
 
     const top = Object.values(porProducto).sort((a, b) => b.ventas - a.ventas);
@@ -493,12 +494,15 @@ async function cargarDatosHoy() {
       prodCont.innerHTML = `
         <table class="tabla-productos">
           <thead><tr>
-            <th>Producto</th><th>$ Ventas</th><th>$ Costo</th><th>$ Margen</th><th>% Margen</th>
+            <th>Producto</th><th>UM</th><th>Cant.</th><th>$ Ventas</th><th>$ Costo</th><th>$ Margen</th><th>% Margen</th>
           </tr></thead>
           <tbody>${top.map(p => {
             const pct = p.ventas > 0 ? (p.margen / p.ventas * 100) : 0;
+            const cantFmt = p.cantidad % 1 === 0 ? p.cantidad : p.cantidad.toFixed(3);
             return `<tr>
               <td><div class="prod-nombre">${p.nombre}</div>${p.categoria ? `<div class="prod-cat">${p.categoria}</div>` : ''}</td>
+              <td>${p.unidad}</td>
+              <td>${cantFmt}</td>
               <td class="td-ventas">${formatPesos(p.ventas)}</td>
               <td class="td-costo">${formatPesos(p.costo)}</td>
               <td class="td-margen">${formatPesos(p.margen)}</td>
@@ -698,10 +702,10 @@ function renderInforme(inf) {
 
   if (inf.topProductos.length) {
     html += `<div class="card"><h2>Productos más vendidos</h2>
-      <div class="tabla-scroll"><table><thead><tr><th>#</th><th>Producto</th><th>Cant.</th><th>Ingreso</th><th>Margen $</th><th>Margen %</th></tr></thead><tbody>
+      <div class="tabla-scroll"><table><thead><tr><th>#</th><th>Producto</th><th>UM</th><th>Cant.</th><th>Ingreso</th><th>Margen $</th><th>Margen %</th></tr></thead><tbody>
       ${inf.topProductos.slice(0, 20).map((p, i) => {
         const pct = p.ingreso > 0 ? (p.margen / p.ingreso * 100) : 0;
-        return `<tr><td>${i+1}</td><td><strong>${p.nombre}</strong></td><td>${p.cantidad % 1 === 0 ? p.cantidad : p.cantidad.toFixed(3)}</td><td style="font-weight:700">${formatPesos(p.ingreso)}</td><td style="color:#2e7d32">${formatPesos(p.margen)}</td><td><span class="td-pct ${claseMargenPct(pct)}">${pct.toFixed(1)}%</span></td></tr>`;
+        return `<tr><td>${i+1}</td><td><strong>${p.nombre}</strong></td><td>${p.unidad || ''}</td><td>${p.cantidad % 1 === 0 ? p.cantidad : p.cantidad.toFixed(3)}</td><td style="font-weight:700">${formatPesos(p.ingreso)}</td><td style="color:#2e7d32">${formatPesos(p.margen)}</td><td><span class="td-pct ${claseMargenPct(pct)}">${pct.toFixed(1)}%</span></td></tr>`;
       }).join('')}
       </tbody></table></div></div>`;
   }

@@ -341,7 +341,8 @@ function getInforme(desde, hasta) {
     const margen = Number(d['Margen $']) || 0;
     const cantidad = Number(d['Cantidad']) || 0;
 
-    if (!prodMap[nombre]) prodMap[nombre] = { nombre, categoria: cat, ingreso: 0, margen: 0, cantidad: 0 };
+    const unidad = d['Unidad'] || '';
+    if (!prodMap[nombre]) prodMap[nombre] = { nombre, categoria: cat, unidad, ingreso: 0, margen: 0, cantidad: 0 };
     prodMap[nombre].ingreso += subtotal;
     prodMap[nombre].margen += margen;
     prodMap[nombre].cantidad += cantidad;
