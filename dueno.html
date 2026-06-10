@@ -148,6 +148,7 @@
 
   /* ── Accionistas: estado de resultados ───────────────────────────────── */
   .acc-modo.activo-modo, .vol-agrup.activo-modo { background: #2e7d32; color: white; border-color: #2e7d32; }
+  .btn-secondary.activo-rango { background: #2e7d32; color: white; border-color: #2e7d32; }
   .er-tabla { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
   .er-tabla th, .er-tabla td { padding: 8px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid #f0f0f0; }
   .er-tabla th:first-child, .er-tabla td:first-child { text-align: left; position: sticky; left: 0; background: white; font-weight: 600; }
@@ -214,7 +215,7 @@
 <div id="app" style="display:none">
   <div id="header">
     <div>
-      <h1>Socios <span style="font-size:0.7rem;opacity:0.6">v4.25</span></h1>
+      <h1>Socios <span style="font-size:0.7rem;opacity:0.6">v4.26</span></h1>
       <div id="fecha-label"></div>
     </div>
     <button id="btn-volver" onclick="window.location.href='index.html'">← Caja</button>
@@ -281,10 +282,10 @@
       <div class="card">
         <h2>Período del informe</h2>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-          <button class="btn-secondary btn-sm" onclick="informeRapido('hoy')">Hoy</button>
-          <button class="btn-secondary btn-sm" onclick="informeRapido('semana')">Últimos 7 días</button>
-          <button class="btn-secondary btn-sm" onclick="informeRapido('mes')">Este mes</button>
-          <button class="btn-secondary btn-sm" onclick="informeRapido('mespasado')">Mes pasado</button>
+          <button class="btn-secondary btn-sm rango-inf" onclick="informeRapido('hoy');marcarRangoActivo(this)">Hoy</button>
+          <button class="btn-secondary btn-sm rango-inf" onclick="informeRapido('semana');marcarRangoActivo(this)">Últimos 7 días</button>
+          <button class="btn-secondary btn-sm rango-inf" onclick="informeRapido('mes');marcarRangoActivo(this)">Este mes</button>
+          <button class="btn-secondary btn-sm rango-inf" onclick="informeRapido('mespasado');marcarRangoActivo(this)">Mes pasado</button>
         </div>
         <div class="form-grid">
           <div class="field"><label>Desde</label><input type="date" id="inf-desde"></div>
@@ -300,11 +301,11 @@
       <div class="card">
         <h2>Volumen vendido por producto</h2>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-          <button class="btn-secondary btn-sm" onclick="volRangoGenerar('semana')">Últimos 7 días</button>
-          <button class="btn-secondary btn-sm" onclick="volRangoGenerar('mes')">Este mes</button>
-          <button class="btn-secondary btn-sm" onclick="volRangoGenerar('mespasado')">Mes pasado</button>
-          <button class="btn-secondary btn-sm" onclick="volRangoGenerar('3meses')">Últimos 3 meses</button>
-          <button class="btn-secondary btn-sm" onclick="volRangoGenerar('anio')">Este año</button>
+          <button class="btn-secondary btn-sm rango-vol" onclick="volRangoGenerar('semana');marcarRangoActivo(this)">Últimos 7 días</button>
+          <button class="btn-secondary btn-sm rango-vol" onclick="volRangoGenerar('mes');marcarRangoActivo(this)">Este mes</button>
+          <button class="btn-secondary btn-sm rango-vol" onclick="volRangoGenerar('mespasado');marcarRangoActivo(this)">Mes pasado</button>
+          <button class="btn-secondary btn-sm rango-vol" onclick="volRangoGenerar('3meses');marcarRangoActivo(this)">Últimos 3 meses</button>
+          <button class="btn-secondary btn-sm rango-vol" onclick="volRangoGenerar('anio');marcarRangoActivo(this)">Este año</button>
         </div>
         <div class="form-grid">
           <div class="field"><label>Desde</label><input type="date" id="vol-desde"></div>
@@ -334,13 +335,13 @@
           </div>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-          <button class="btn-secondary btn-sm" onclick="accRangoGenerar('hoy')">Hoy</button>
-          <button class="btn-secondary btn-sm" onclick="accRangoGenerar('semana')">Últimos 7 días</button>
-          <button class="btn-secondary btn-sm" onclick="accRangoGenerar('mes')">Este mes</button>
-          <button class="btn-secondary btn-sm" onclick="accRangoGenerar('mespasado')">Mes pasado</button>
-          <button class="btn-secondary btn-sm" onclick="accRangoGenerar('3meses')">Últimos 3 meses</button>
-          <button class="btn-secondary btn-sm" onclick="accRangoGenerar('anio')">Este año</button>
-          <button class="btn-secondary btn-sm" onclick="accRangoGenerar('todo')">Todo</button>
+          <button class="btn-secondary btn-sm rango-acc" onclick="accRangoGenerar('hoy');marcarRangoActivo(this)">Hoy</button>
+          <button class="btn-secondary btn-sm rango-acc" onclick="accRangoGenerar('semana');marcarRangoActivo(this)">Últimos 7 días</button>
+          <button class="btn-secondary btn-sm rango-acc" onclick="accRangoGenerar('mes');marcarRangoActivo(this)">Este mes</button>
+          <button class="btn-secondary btn-sm rango-acc" onclick="accRangoGenerar('mespasado');marcarRangoActivo(this)">Mes pasado</button>
+          <button class="btn-secondary btn-sm rango-acc" onclick="accRangoGenerar('3meses');marcarRangoActivo(this)">Últimos 3 meses</button>
+          <button class="btn-secondary btn-sm rango-acc" onclick="accRangoGenerar('anio');marcarRangoActivo(this)">Este año</button>
+          <button class="btn-secondary btn-sm rango-acc" onclick="accRangoGenerar('todo');marcarRangoActivo(this)">Todo</button>
         </div>
         <div class="form-grid">
           <div class="field"><label>Desde</label><input type="date" id="acc-desde"></div>
@@ -551,6 +552,13 @@ async function cargarDatosHoy() {
 }
 
 setInterval(cargarDatosHoy, 120000);
+
+function marcarRangoActivo(btn) {
+  const clase = Array.from(btn.classList).find(c => c.startsWith('rango-'));
+  if (!clase) return;
+  document.querySelectorAll('.' + clase).forEach(b => b.classList.remove('activo-rango'));
+  btn.classList.add('activo-rango');
+}
 
 // ── EVOLUCIÓN ──────────────────────────────────────────────────────────────
 function informeRapido(tipo) {
