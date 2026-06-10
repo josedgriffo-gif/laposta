@@ -1,6 +1,6 @@
 /**
  * LA POSTA — Backend Google Apps Script
- * backend.gs v4.9
+ * backend.gs v4.19
  *
  * API REST para la app web de punto de venta.
  * Pegá este archivo completo en el editor de Apps Script
@@ -372,8 +372,9 @@ function getInforme(desde, hasta) {
   const diaMap = {};
   ventas.forEach(v => {
     const fecha = formatearFecha(v['Fecha']);
-    if (!diaMap[fecha]) diaMap[fecha] = { fecha, total: 0, efectivo: 0, mercadoPago: 0, transferencia: 0, cuentaDni: 0, tarjeta: 0, otro: 0, tickets: 0 };
+    if (!diaMap[fecha]) diaMap[fecha] = { fecha, total: 0, costo: 0, efectivo: 0, mercadoPago: 0, transferencia: 0, cuentaDni: 0, tarjeta: 0, otro: 0, tickets: 0 };
     diaMap[fecha].total        += Number(v['Total Venta'])   || 0;
+    diaMap[fecha].costo        += Number(v['Costo Total'])   || 0;
     diaMap[fecha].efectivo     += Number(v['Efectivo'])      || 0;
     diaMap[fecha].mercadoPago  += Number(v['Mercado Pago'])  || 0;
     diaMap[fecha].transferencia+= Number(v['Transferencia']) || 0;
@@ -1110,9 +1111,19 @@ function initStock() {
 
   const productos = sheetToObjects(ss.getSheetByName('Productos'));
   const rows = sheet.getDataRange().getValues();
-  const existentes = rows.slice(1).map(r => String(r[0]).trim());
   const ahora = Utilities.formatDate(new Date(), 'America/Argentina/Buenos_Aires', 'yyyy-MM-dd HH:mm');
 
+  // Corregir negativos en filas existentes
+  let corregidos = 0;
+  for (let i = 1; i < rows.length; i++) {
+    if (Number(rows[i][1]) < 0) {
+      sheet.getRange(i + 1, 2).setValue(0);
+      sheet.getRange(i + 1, 3).setValue(ahora);
+      corregidos++;
+    }
+  }
+
+  const existentes = rows.slice(1).map(r => String(r[0]).trim());
   const nuevos = productos
     .filter(p => p['Nombre'] && !existentes.includes(String(p['Nombre']).trim()))
     .map(p => [p['Nombre'], 0, ahora]);
@@ -1121,7 +1132,7 @@ function initStock() {
     sheet.getRange(sheet.getLastRow() + 1, 1, nuevos.length, 3).setValues(nuevos);
   }
 
-  return { inicializados: nuevos.length, yaExistian: existentes.length };
+  return { inicializados: nuevos.length, yaExistian: existentes.length, corregidos };
 }
 
 /**

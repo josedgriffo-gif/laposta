@@ -368,7 +368,7 @@
 
 <div id="app" style="display:none">
   <div id="header">
-    <h1>⚙ Panel Admin <span id="version-badge">v4.17</span></h1>
+    <h1>⚙ Panel Admin <span id="version-badge">v4.19</span></h1>
     <div style="display:flex;gap:8px;align-items:center">
       <button onclick="window.location.href='dueno.html'" style="background:rgba(255,255,255,0.15);color:white;border:1px solid rgba(255,255,255,0.3);border-radius:6px;padding:8px 16px;font-size:0.9rem;font-weight:600;cursor:pointer">HOY</button>
       <div class="dropdown" id="dropdown-informes" style="position:relative">
@@ -2286,10 +2286,10 @@ async function resetDatos() {
 }
 
 async function inicializarStock() {
-  if (!confirm('Esto crea la hoja Stock_Actual con todos los productos en stock 0 (solo los que no tengan fila todavía). ¿Continuar?')) return;
+  if (!confirm('Esto agrega productos faltantes en Stock_Actual y pone en 0 los que tengan stock negativo. ¿Continuar?')) return;
   try {
     const res = await apiPost('initStock', {});
-    alert(`Stock inicializado: ${res.inicializados} productos nuevos, ${res.yaExistian} ya existían.`);
+    alert(`Stock inicializado: ${res.inicializados} productos nuevos, ${res.corregidos} negativos corregidos a 0, ${res.yaExistian} sin cambios.`);
     await cargarStock();
   } catch(e) {
     alert('Error: ' + e.message);
