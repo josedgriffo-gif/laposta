@@ -547,7 +547,7 @@
 
   <!-- Header -->
   <div id="header">
-    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v4.28</span></h1>
+    <h1>🛒 La Posta <span style="font-size:0.7rem;opacity:0.6">v4.29</span></h1>
     <div id="header-right">
       <span id="offline-badge">SIN CONEXIÓN</span>
       <button id="btn-dueno">HOY</button>
@@ -763,11 +763,28 @@ async function init() {
   pedirPinCaja(); // bloquea la caja hasta ingresar el PIN
 }
 
+// ── Sesión compartida entre pantallas (Caja / Socios / Admin) ────────────────
+// Mismo origen -> las 3 páginas comparten localStorage. Una vez que se ingresa
+// un PIN válido, no se vuelve a pedir en ninguna pantalla por 8 horas.
+const LP_SESION_MS = 8 * 60 * 60 * 1000; // 8 horas
+function lpGuardarSesion(rol) {
+  try { localStorage.setItem('laposta_sesion', JSON.stringify({ rol: rol, ts: Date.now() })); } catch(e) {}
+}
+function lpSesionVigente() {
+  try {
+    const s = JSON.parse(localStorage.getItem('laposta_sesion') || 'null');
+    if (s && s.ts && (Date.now() - s.ts) < LP_SESION_MS) return s;
+  } catch(e) {}
+  return null;
+}
+
 // ── Bloqueo de apertura de caja ──────────────────────────────────────────────
 let cajaPinBuffer = '';
 let cajaDesbloqueada = false;
 
 function pedirPinCaja() {
+  // Sesión activa (cualquier PIN válido en las últimas 8 h) -> no re-pedir
+  if (lpSesionVigente()) { cajaDesbloqueada = true; return; }
   cajaDesbloqueada = false;
   cajaPinBuffer = '';
   actualizarDotsCaja();
@@ -800,6 +817,7 @@ function verificarPinCaja() {
   // Abre con el PIN de caja o con el de admin
   if (cajaPinBuffer === pinCaja || cajaPinBuffer === pinAdmin) {
     cajaDesbloqueada = true;
+    lpGuardarSesion(cajaPinBuffer === pinAdmin ? 'admin' : 'caja');
     document.getElementById('pantalla-caja-pin').style.display = 'none';
   } else {
     document.getElementById('cpin-error').textContent = 'PIN incorrecto';

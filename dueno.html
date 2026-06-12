@@ -215,7 +215,7 @@
 <div id="app" style="display:none">
   <div id="header">
     <div>
-      <h1>Socios <span style="font-size:0.7rem;opacity:0.6">v4.28</span></h1>
+      <h1>Socios <span style="font-size:0.7rem;opacity:0.6">v4.29</span></h1>
       <div id="fecha-label"></div>
     </div>
     <button id="btn-volver" onclick="window.location.href='index.html'">← Caja</button>
@@ -385,6 +385,19 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbzYU4oUPCb7jNORognxXS-g
 let pinBuffer = '';
 let pinConfig = null;
 
+// ── Sesión compartida entre pantallas (Caja / Socios / Admin) ────────────────
+const LP_SESION_MS = 8 * 60 * 60 * 1000; // 8 horas
+function lpGuardarSesion(rol) {
+  try { localStorage.setItem('laposta_sesion', JSON.stringify({ rol: rol, ts: Date.now() })); } catch(e) {}
+}
+function lpSesionVigente() {
+  try {
+    const s = JSON.parse(localStorage.getItem('laposta_sesion') || 'null');
+    if (s && s.ts && (Date.now() - s.ts) < LP_SESION_MS) return s;
+  } catch(e) {}
+  return null;
+}
+
 async function initPin() {
   try {
     const res = await fetch(`${API_URL}?action=getConfig`);
@@ -414,20 +427,25 @@ function actualizarDots() {
   }
 }
 
+function entrarDueno() {
+  document.getElementById('pantalla-pin').style.display = 'none';
+  document.getElementById('loading').style.display = 'flex';
+  const hash = window.location.hash.replace('#', '');
+  if (hash === 'evolucion' || hash === 'accionistas' || hash === 'volumen' || hash === 'afluencia') {
+    cargarDatosHoy().then(() => {
+      document.querySelector(`.tab[data-tab="${hash}"]`).click();
+    });
+  } else {
+    cargarDatosHoy();
+  }
+}
+
 function verificarPin() {
   const pinSocios = String(pinConfig?.PIN_Socios || '5678').padStart(4, '0');
   const pinAdmin  = String(pinConfig?.PIN_Admin  || '1234').padStart(4, '0');
   if (pinBuffer === pinSocios || pinBuffer === pinAdmin) {
-    document.getElementById('pantalla-pin').style.display = 'none';
-    document.getElementById('loading').style.display = 'flex';
-    const hash = window.location.hash.replace('#', '');
-    if (hash === 'evolucion' || hash === 'accionistas' || hash === 'volumen' || hash === 'afluencia') {
-      cargarDatosHoy().then(() => {
-        document.querySelector(`.tab[data-tab="${hash}"]`).click();
-      });
-    } else {
-      cargarDatosHoy();
-    }
+    lpGuardarSesion(pinBuffer === pinAdmin ? 'admin' : 'socios');
+    entrarDueno();
   } else {
     document.getElementById('pin-error').textContent = 'PIN incorrecto';
     pinBuffer = '';
@@ -437,6 +455,8 @@ function verificarPin() {
 }
 
 initPin();
+// Sesión activa (cualquier PIN válido en las últimas 8 h) -> entrar sin re-pedir PIN
+if (lpSesionVigente()) entrarDueno();
 
 // ── API ────────────────────────────────────────────────────────────────────
 async function apiGet(action) {
