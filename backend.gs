@@ -1,6 +1,6 @@
 /**
  * LA POSTA — Backend Google Apps Script
- * backend.gs v4.26
+ * backend.gs v4.27
  *
  * API REST para la app web de punto de venta.
  * Pegá este archivo completo en el editor de Apps Script
@@ -35,6 +35,7 @@ function doGet(e) {
       case 'getDatosExport':  return ok(getDatosExport(e.parameter.desde, e.parameter.hasta));
       case 'getAccionistas':  return ok(getAccionistas(e.parameter.desde, e.parameter.hasta, e.parameter.modalidad));
       case 'getVolumen':      return ok(getVolumen(e.parameter.desde, e.parameter.hasta, e.parameter.agrupacion));
+      case 'getAfluencia':    return ok(getAfluencia(e.parameter.desde, e.parameter.hasta));
       default:                return ok({ status: 'La Posta API activa' });
     }
   } catch (err) {
@@ -1086,6 +1087,113 @@ function getVolumen(desde, hasta, agrupacion) {
   const productos = Object.values(prodMap).sort((a, b) => b.total - a.total);
 
   return { periodos, productos };
+}
+
+/**
+ * Afluencia de clientes (cantidad de tickets) por día de la semana y hora.
+ * Lee BD_Ventas en crudo (NO usa sheetToObjects) porque ese helper convierte
+ * celdas tipo Date/hora a 'yyyy-MM-dd' y perdería la hora. Excluye CANCELADA.
+ *
+ * Devuelve PROMEDIO por día operado: para cada celda (día, hora) divide los
+ * tickets por la cantidad de fechas distintas de ese día de la semana que
+ * tuvieron al menos una venta. Así un rango de 1 semana y uno de 1 mes son
+ * comparables (no se infla con rangos largos).
+ */
+function getAfluencia(desde, hasta) {
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const sheet = ss.getSheetByName('BD_Ventas');
+  const dias = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+  const vacio = { desde, hasta, dias, horas: [], heat: [], barra: [], diasOperados: [],
+                  totalTickets: 0, totalDias: 0, pico: null, horaPico: null, diaPico: null };
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return vacio;
+
+  const headers = data[0];
+  const cFecha  = headers.indexOf('Fecha');
+  const cHora   = headers.indexOf('Hora');
+  const cEstado = headers.indexOf('Estado');
+
+  const fechaDe = (val) => {
+    if (val instanceof Date && !isNaN(val)) {
+      return Utilities.formatDate(val, 'America/Argentina/Buenos_Aires', 'yyyy-MM-dd');
+    }
+    return String(val || '').substring(0, 10);
+  };
+  const horaDe = (val) => {
+    if (val instanceof Date && !isNaN(val)) {
+      return parseInt(Utilities.formatDate(val, 'America/Argentina/Buenos_Aires', 'H'), 10);
+    }
+    const m = String(val || '').trim().match(/^(\d{1,2})\s*[:hH]/);
+    return m ? parseInt(m[1], 10) : NaN;
+  };
+
+  const conteo  = {};   // dow -> { hora -> cantidad de tickets }
+  const diasSet = {};   // dow -> { fecha -> true }
+  const horasSet = {};
+  const fechasTotal = {};
+  let totalTickets = 0;
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (String(row[cEstado]) === 'CANCELADA') continue;
+    const fecha = fechaDe(row[cFecha]);
+    if (fecha < desde || fecha > hasta) continue;
+    const hh = horaDe(row[cHora]);
+    if (isNaN(hh)) continue;
+
+    const d = new Date(fecha + 'T12:00:00');
+    const dow = (d.getDay() + 6) % 7;   // 0=Lun .. 6=Dom
+
+    if (!conteo[dow]) conteo[dow] = {};
+    conteo[dow][hh] = (conteo[dow][hh] || 0) + 1;
+    if (!diasSet[dow]) diasSet[dow] = {};
+    diasSet[dow][fecha] = true;
+    horasSet[hh] = true;
+    fechasTotal[fecha] = true;
+    totalTickets++;
+  }
+
+  const horas = Object.keys(horasSet).map(Number).sort((a, b) => a - b);
+  if (horas.length === 0) return vacio;
+
+  // Matriz de promedios por día operado + pico de celda
+  const heat = [];
+  const diasOperados = [];
+  let pico = { dia: '', hora: 0, val: 0 };
+  for (let dow = 0; dow < 7; dow++) {
+    const nDias = diasSet[dow] ? Object.keys(diasSet[dow]).length : 0;
+    diasOperados.push(nDias);
+    const fila = horas.map(h => {
+      const c = (conteo[dow] && conteo[dow][h]) || 0;
+      const prom = nDias > 0 ? c / nDias : 0;
+      if (prom > pico.val) pico = { dia: dias[dow], hora: h, val: prom };
+      return prom;
+    });
+    heat.push(fila);
+  }
+
+  // Barra: promedio por hora sobre el total de días operados
+  const totalDias = Object.keys(fechasTotal).length;
+  let horaPico = { hora: horas[0], val: 0 };
+  const barra = horas.map(h => {
+    let s = 0;
+    for (let dow = 0; dow < 7; dow++) s += (conteo[dow] && conteo[dow][h]) || 0;
+    const prom = totalDias > 0 ? s / totalDias : 0;
+    if (prom > horaPico.val) horaPico = { hora: h, val: prom };
+    return prom;
+  });
+
+  // Día de la semana más movido (mayor promedio de tickets/día)
+  let diaPico = { dia: '', val: 0 };
+  for (let dow = 0; dow < 7; dow++) {
+    const sumProm = heat[dow].reduce((a, b) => a + b, 0);
+    if (sumProm > diaPico.val) diaPico = { dia: dias[dow], val: sumProm };
+  }
+
+  return { desde, hasta, dias, horas, heat, barra, diasOperados,
+           totalTickets, totalDias, pico, horaPico, diaPico };
 }
 
 // ── Utilidades ───────────────────────────────────────────────────────────────
