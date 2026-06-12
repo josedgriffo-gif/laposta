@@ -18,10 +18,15 @@ El usuario pierde mucho tiempo cuando un cambio "queda a medias". Un cambio NO e
 
 Regla rápida: **solo HTML → con el push alcanza.** **Tocó `backend.gs` → además hace falta el pegado manual en Apps Script.**
 
-## Versionado
+## Versionado — REGLA CRÍTICA
 
-UN SOLO número de versión para todo el sistema. Los 4 archivos deben mostrar el mismo número: `index.html`, `admin.html`, `dueno.html` (badge en el `<h1>`) y `backend.gs` (comentario de cabecera).
-Cada push sube el número, incluidos los fixes. NO versión por archivo (eso lo maneja git). NO reutilizar el número anterior aunque sea la misma sesión.
+**TODO cambio sube el número de versión, sin excepción** (hasta el fix más chico de una línea). NUNCA reutilizar el número anterior, aunque sea en la misma sesión.
+
+**Por qué (no es prolijidad, es funcional para José):** el número de versión es su **semáforo de deploy**. Es la única forma que tiene de verificar, mirando la app, si lo que ve es la versión vieja o la nueva — si el número no cambia, no sabe si el cambio se subió o no. Olvidarse de subirlo le hace perder tiempo recargando sin saber qué está mirando.
+
+UN SOLO número para todo el sistema. Los 4 archivos deben mostrar el MISMO número: `index.html`, `admin.html`, `dueno.html` (badge en el `<h1>`) y `backend.gs` (comentario de cabecera). NO versión por archivo (eso lo maneja git).
+
+El hook `Stop` (ver `.claude/settings.local.json`) **no pushea** si detecta código `.html`/`.gs` commiteado sin bump de versión — red de seguridad, pero la responsabilidad de subirlo es de Claude en cada cambio.
 
 ## Arquitectura de pantallas
 
