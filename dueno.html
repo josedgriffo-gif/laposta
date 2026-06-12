@@ -215,7 +215,7 @@
 <div id="app" style="display:none">
   <div id="header">
     <div>
-      <h1>Socios <span style="font-size:0.7rem;opacity:0.6">v4.27</span></h1>
+      <h1>Socios <span style="font-size:0.7rem;opacity:0.6">v4.28</span></h1>
       <div id="fecha-label"></div>
     </div>
     <button id="btn-volver" onclick="window.location.href='index.html'">← Caja</button>
@@ -421,7 +421,7 @@ function verificarPin() {
     document.getElementById('pantalla-pin').style.display = 'none';
     document.getElementById('loading').style.display = 'flex';
     const hash = window.location.hash.replace('#', '');
-    if (hash === 'evolucion' || hash === 'accionistas' || hash === 'afluencia') {
+    if (hash === 'evolucion' || hash === 'accionistas' || hash === 'volumen' || hash === 'afluencia') {
       cargarDatosHoy().then(() => {
         document.querySelector(`.tab[data-tab="${hash}"]`).click();
       });
