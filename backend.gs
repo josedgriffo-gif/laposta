@@ -1,6 +1,6 @@
 /**
  * LA POSTA — Backend Google Apps Script
- * backend.gs v4.27
+ * backend.gs v4.28
  *
  * API REST para la app web de punto de venta.
  * Pegá este archivo completo en el editor de Apps Script
